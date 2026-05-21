@@ -41,7 +41,7 @@ export default function Layout() {
       {/* Decorative logo in left gutter — only on wide screens */}
       <div
         className="fixed top-1/2 -translate-y-1/2 pointer-events-none select-none hidden lg:block"
-        style={{ left: 'max(12px, calc(50vw - 620px))', width: '180px', opacity: 0.09 }}
+        style={{ left: 'max(-30px, calc(50vw - 760px))', width: '360px', opacity: 0.1 }}
       >
         <img src="/favicon.svg" alt="" className="w-full" />
       </div>
