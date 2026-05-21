@@ -40,8 +40,8 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col">
       {/* Decorative logo in left gutter — only on wide screens */}
       <div
-        className="fixed top-1/2 -translate-y-1/2 pointer-events-none select-none hidden lg:block"
-        style={{ left: 'max(-30px, calc(50vw - 760px))', width: '360px', opacity: 0.1 }}
+        className="fixed pointer-events-none select-none hidden lg:block"
+        style={{ left: 'max(10px, calc(50vw - 740px))', top: '68px', width: 'min(300px, calc(50vw - 630px))', opacity: 0.11 }}
       >
         <img src="/favicon.svg" alt="" className="w-full" />
       </div>
