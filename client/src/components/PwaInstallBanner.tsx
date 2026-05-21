@@ -74,12 +74,12 @@ export default function PwaInstallBanner() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 120, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 120, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-          className="fixed bottom-20 sm:bottom-6 left-1/2 z-[9999] w-[min(380px,94vw)]"
-          style={{ transform: 'translateX(-50%)' }}>
+          initial={{ scale: 0.88, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.88, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+          className="fixed top-1/2 left-1/2 z-[9999] w-[min(380px,94vw)]"
+          style={{ transform: 'translate(-50%, -50%)' }}>
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(13,13,20,.97)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center gap-3">
