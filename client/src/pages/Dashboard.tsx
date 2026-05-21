@@ -18,6 +18,7 @@ interface WeaponMeta {
   image_url: string | null
   recent_change: 'buff' | 'nerf' | 'new' | null
   max_level: number | null
+  updated_at: string | null
 }
 
 const TIERS = ['S', 'A', 'B', 'C'] as const
@@ -419,6 +420,13 @@ export default function Dashboard() {
   const filtered  = activeClass === 'Todas' ? meta : meta.filter(w => WEAPON_CLASSES[activeClass]?.includes(w.category))
   const byTier    = (t: string) => filtered.filter(w => w.tier === t)
 
+  const lastUpdated = meta.length
+    ? new Date(Math.max(...meta.map(w => w.updated_at ? new Date(w.updated_at).getTime() : 0)))
+    : null
+  const lastUpdatedStr = lastUpdated
+    ? lastUpdated.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+
   const goSave = (w: WeaponMeta) => {
     setSelected(null)
     navigate(isAuthenticated ? '/loadouts' : '/register', {
@@ -436,6 +444,12 @@ export default function Dashboard() {
             Meta de <span className="bg-gradient-to-r from-red-300 to-red-500 bg-clip-text text-transparent">Armas</span>
           </h1>
           <p className="text-xs sm:text-sm text-white/30 mt-1">Warzone · BO7 Season 3 · {meta.length} armas rankeadas</p>
+          {lastUpdatedStr && (
+            <p className="text-[10px] text-white/20 mt-0.5 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500/60" />
+              Última actualización: {lastUpdatedStr}
+            </p>
+          )}
         </div>
         {!isAuthenticated && (
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}

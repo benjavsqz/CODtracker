@@ -73,13 +73,13 @@ export default function PwaInstallBanner() {
   return (
     <AnimatePresence>
       {visible && (
-        /* Overlay: covers full screen, centers content with flexbox */
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 pointer-events-none">
+        /* Bottom bar: horizontally centered, above mobile nav */
+        <div className="fixed bottom-20 sm:bottom-6 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
           <motion.div
-            initial={{ scale: 0.88, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.88, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
             className="w-full max-w-sm pointer-events-auto">
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(13,13,20,.97)', backdropFilter: 'blur(20px)' }}>
