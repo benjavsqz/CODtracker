@@ -48,13 +48,13 @@ export default function Layout() {
         className="fixed inset-0 pointer-events-none select-none overflow-hidden flex items-center justify-center"
         style={{ opacity: 0.08, zIndex: -1 }}
       >
-        <img src="/logo.png" alt="" style={{ width: '100vmax', height: '100vmax', objectFit: 'contain' }} />
+        <img src="/favicon.svg" alt="" style={{ width: '100vmax', height: '100vmax', objectFit: 'contain' }} />
       </div>
       {/* Top header — visible on md+ */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/50 border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <img src="/logo.png" alt="META WZ" className="h-8 sm:h-9 object-contain" />
+            <img src="/logo-text.svg" alt="META WZ" className="h-5 sm:h-6 object-contain" />
             {/* Desktop nav */}
             <nav className="hidden sm:flex gap-1">
               <NavLink to="/meta" className={topLink}>Meta</NavLink>
