@@ -250,7 +250,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3">
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       {hasData ? (
         <>
           {/* Header row */}
@@ -399,6 +399,21 @@ export default function Dashboard() {
   useEffect(() => {
     api.get<WeaponMeta[]>('/meta').then(r => setMeta(r.data)).finally(() => setLoading(false))
   }, [])
+
+  // Lock body scroll when mobile sheet is open
+  useEffect(() => {
+    if (selected) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [selected])
 
   const classTabs = ['Todas', ...Object.keys(WEAPON_CLASSES)]
   const filtered  = activeClass === 'Todas' ? meta : meta.filter(w => WEAPON_CLASSES[activeClass]?.includes(w.category))
@@ -558,6 +573,8 @@ export default function Dashboard() {
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',
+              touchAction: 'pan-y',
+              overscrollBehavior: 'contain',
             }}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/10" />
@@ -575,6 +592,7 @@ export default function Dashboard() {
           <motion.div key="backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
+            style={{ touchAction: 'none' }}
             onClick={() => setSelected(null)} />
         )}
       </AnimatePresence>
