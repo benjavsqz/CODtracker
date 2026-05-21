@@ -1,0 +1,52 @@
+version: '3.9'
+
+networks:
+  coolify:
+    external: true
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      JWT_SECRET: ${JWT_SECRET}
+    expose:
+      - "3001"
+    networks:
+      - coolify
+    labels:
+      - "coolify.managed=true"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - server
+    networks:
+      - coolify
+    labels:
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.metawz-http.entrypoints=http"
+      - "traefik.http.routers.metawz-http.rule=Host(`metawz.shifters.cl`)"
+      - "traefik.http.routers.metawz-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.metawz-https.entrypoints=https"
+      - "traefik.http.routers.metawz-https.rule=Host(`metawz.shifters.cl`)"
+      - "traefik.http.routers.metawz-https.tls=true"
+      - "traefik.http.routers.metawz-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.metawz.loadbalancer.server.port=80"
+      - "traefik.http.routers.metawz-https.service=metawz"
