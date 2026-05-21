@@ -25,6 +25,10 @@ async function run() {
   await pool.query(seedPerks)
   console.log('✓ Meta de ventajas BO7 sembrada (15 perks)')
 
+  const seedEquipment = fs.readFileSync(path.join(__dirname, '../db/seed-equipment.sql'), 'utf8')
+  await pool.query(seedEquipment)
+  console.log('✓ Equipment BO7 sembrado (24 items)')
+
   await pool.end()
   console.log('Migración completada.')
 }
