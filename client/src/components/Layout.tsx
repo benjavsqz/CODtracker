@@ -2,33 +2,26 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PwaInstallBanner from './PwaInstallBanner'
 
-/* Skull line-art — misma estética BO7, muestra la mitad inferior cortada por el header */
 const SkullIcon = () => (
   <svg
-    width="46" height="52" viewBox="0 0 46 52"
+    width="26" height="30" viewBox="0 0 46 52"
     fill="none" xmlns="http://www.w3.org/2000/svg"
     className="shrink-0"
-    style={{ marginBottom: '-14px', filter: 'drop-shadow(0 0 6px rgba(255,255,255,.18))' }}
+    style={{ filter: 'drop-shadow(0 0 5px rgba(255,255,255,.28))' }}
   >
-    {/* Cráneo */}
     <path
       d="M23 2C11.4 2 3 10.4 3 21c0 6.6 3.4 12.4 8.5 15.8V44h21v-7.2C37.6 33.4 41 27.6 41 21 41 10.4 32.6 2 23 2Z"
-      stroke="white" strokeWidth="1.6" strokeLinejoin="round" fill="rgba(255,255,255,0.04)"
+      stroke="white" strokeWidth="1.8" strokeLinejoin="round" fill="rgba(255,255,255,0.06)"
     />
-    {/* Ojo izquierdo */}
-    <ellipse cx="15" cy="21" rx="4.5" ry="5" fill="rgba(0,0,0,0.7)" stroke="white" strokeWidth="1.2"/>
-    {/* Ojo derecho */}
-    <ellipse cx="31" cy="21" rx="4.5" ry="5" fill="rgba(0,0,0,0.7)" stroke="white" strokeWidth="1.2"/>
-    {/* Nariz */}
-    <path d="M21 29l-1.5 3.5h5L23 29z" stroke="white" strokeWidth="1" fill="rgba(0,0,0,0.5)" strokeLinejoin="round"/>
-    {/* División dientes */}
-    <line x1="15.5" y1="44" x2="15.5" y2="49" stroke="white" strokeWidth="1.2"/>
-    <line x1="20"   y1="44" x2="20"   y2="50" stroke="white" strokeWidth="1.2"/>
-    <line x1="23"   y1="44" x2="23"   y2="51" stroke="white" strokeWidth="1.2"/>
-    <line x1="26"   y1="44" x2="26"   y2="50" stroke="white" strokeWidth="1.2"/>
-    <line x1="30.5" y1="44" x2="30.5" y2="49" stroke="white" strokeWidth="1.2"/>
-    {/* Grieta superior */}
-    <path d="M23 2L22 7l2 3-2 4" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeLinecap="round"/>
+    <ellipse cx="15" cy="21" rx="4.5" ry="5" fill="black" stroke="white" strokeWidth="1.3"/>
+    <ellipse cx="31" cy="21" rx="4.5" ry="5" fill="black" stroke="white" strokeWidth="1.3"/>
+    <path d="M21 29l-1.5 3.5h5L23 29z" stroke="white" strokeWidth="1.1" fill="black" strokeLinejoin="round"/>
+    <line x1="15.5" y1="44" x2="15.5" y2="50" stroke="white" strokeWidth="1.3"/>
+    <line x1="20"   y1="44" x2="20"   y2="51" stroke="white" strokeWidth="1.3"/>
+    <line x1="23"   y1="44" x2="23"   y2="52" stroke="white" strokeWidth="1.3"/>
+    <line x1="26"   y1="44" x2="26"   y2="51" stroke="white" strokeWidth="1.3"/>
+    <line x1="30.5" y1="44" x2="30.5" y2="50" stroke="white" strokeWidth="1.3"/>
+    <path d="M23 2L22 7l2 3-2 4" stroke="rgba(255,255,255,0.45)" strokeWidth="1.1" strokeLinecap="round"/>
   </svg>
 )
 
@@ -71,9 +64,9 @@ export default function Layout() {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/50 border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2 overflow-visible">
+            <div className="flex items-center gap-2.5 bg-black border border-white/[0.12] rounded-xl px-2.5 sm:px-3 py-1.5">
               <SkullIcon />
-              <img src="/logo-text.svg" alt="META WZ" className="h-4 object-contain" />
+              <img src="/logo-text.svg" alt="META WZ" className="h-3.5 sm:h-4 object-contain" />
             </div>
             {/* Desktop nav */}
             <nav className="hidden sm:flex gap-1">
