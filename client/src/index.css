@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────── */
+:root {
+  --bg:       #06060a;
+  --surface:  #0d0d14;
+  --card:     #10101a;
+  --border:   rgba(255,255,255,.07);
+  --border-h: rgba(255,255,255,.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: #fff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Radial glow behind app */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(74,222,128,.10) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(96,165,250,.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* ── Glass card ───────────────────────────── */
+.glass {
+  background: rgba(255,255,255,.03);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--border);
+}
+.glass:hover {
+  border-color: var(--border-h);
+}
+
+/* ── Shimmer skeleton ─────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.09) 50%,
+    rgba(255,255,255,.04) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* ── Tier glow borders ────────────────────── */
+.tier-s { border-color: rgba(250,204,21,.25); }
+.tier-s:hover { border-color: rgba(250,204,21,.55); box-shadow: 0 0 18px rgba(250,204,21,.12); }
+
+.tier-a { border-color: rgba(74,222,128,.22); }
+.tier-a:hover { border-color: rgba(74,222,128,.50); box-shadow: 0 0 18px rgba(74,222,128,.12); }
+
+.tier-b { border-color: rgba(96,165,250,.20); }
+.tier-b:hover { border-color: rgba(96,165,250,.45); box-shadow: 0 0 18px rgba(96,165,250,.10); }
+
+.tier-c { border-color: rgba(107,114,128,.18); }
+.tier-c:hover { border-color: rgba(107,114,128,.38); }
+
+/* ── Scrollbar ────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); }
+
+/* ── Utilities ────────────────────────────── */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Safe area for bottom nav on iPhone */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Line clamp utility */
+.line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
