@@ -20,6 +20,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     expose:
       - "3001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - coolify
     labels:
