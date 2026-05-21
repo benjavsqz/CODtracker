@@ -16,8 +16,8 @@ function isInStandaloneMode() {
 function isDismissedRecently() {
   const ts = localStorage.getItem('pwa_dismissed_at')
   if (!ts) return false
-  // expire after 3 days so user can be reminded
-  return Date.now() - Number(ts) < 3 * 24 * 60 * 60 * 1000
+  // expire after 1 day so user can be reminded
+  return Date.now() - Number(ts) < 24 * 60 * 60 * 1000
 }
 
 export default function PwaInstallBanner() {

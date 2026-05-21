@@ -315,7 +315,7 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ─ Header ─ */}
       <div className="px-5 pt-4 pb-3 border-b border-white/[0.06] flex items-start justify-between shrink-0">
         <div className="flex-1 min-w-0">
@@ -404,27 +404,11 @@ export default function Dashboard() {
   // Lock body scroll when mobile sheet is open
   useEffect(() => {
     if (selected) {
-      const scrollY = window.scrollY
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.width = '100%'
     } else {
-      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
       document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      if (scrollY) window.scrollTo(0, scrollY)
     }
-    return () => {
-      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      if (scrollY) window.scrollTo(0, scrollY)
-    }
+    return () => { document.body.style.overflow = '' }
   }, [selected])
 
   const classTabs = ['Todas', ...Object.keys(WEAPON_CLASSES)]
@@ -592,20 +576,17 @@ export default function Dashboard() {
       <AnimatePresence>
         {selected && (
           <motion.div key="sheet" variants={sheetVariants} initial="hidden" animate="show" exit="exit"
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl flex flex-col"
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl overflow-hidden flex flex-col"
             style={{
               maxHeight: '85dvh',
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',
-              overscrollBehavior: 'contain',
             }}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/10" />
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-              <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
-            </div>
+            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
           </motion.div>
         )}
       </AnimatePresence>
