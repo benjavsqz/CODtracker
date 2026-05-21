@@ -83,7 +83,7 @@ export default function PwaInstallBanner() {
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(13,13,20,.97)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
+              <div className="w-11 h-11 rounded-xl bg-black border border-white/[0.12] flex items-center justify-center shrink-0 shadow-lg">
                 <img src="/favicon.svg" alt="META WZ" className="w-7 h-7 object-contain" />
               </div>
               <div className="flex-1 min-w-0">
@@ -101,7 +101,7 @@ export default function PwaInstallBanner() {
             {!isIOSDevice && (
               <div className="flex gap-2 mt-3">
                 <button onClick={install}
-                  className="flex-1 py-2.5 rounded-xl bg-green-500/20 text-green-400 border border-green-500/40 text-sm font-semibold hover:bg-green-500/30 transition-all flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 rounded-xl bg-red-600/20 text-red-400 border border-red-500/40 text-sm font-semibold hover:bg-red-600/30 transition-all flex items-center justify-center gap-2">
                   ⬇ Instalar app
                 </button>
                 <button onClick={dismiss}

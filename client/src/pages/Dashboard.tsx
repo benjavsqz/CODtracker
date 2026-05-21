@@ -300,15 +300,11 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
   w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean
 }) {
   const cfg = TIER_CFG[w.tier] ?? TIER_CFG.C
-  // Max level = highest required attachment level for this weapon (+ buffer)
-  const maxLv = Math.max(
-    1,
-    ...Object.values(w.meta_build ?? {}).map(v => attLevel(v) ?? 0)
-  )
+  const maxLv = 50 // BO7 weapon level cap
 
   const [userLevel, setUserLevel] = useState<number>(() => {
     const saved = localStorage.getItem(`mwz:lv:${w.weapon_name}`)
-    return saved ? parseInt(saved) : 70
+    return saved ? parseInt(saved) : 50
   })
 
   const handleLevel = (n: number) => {
