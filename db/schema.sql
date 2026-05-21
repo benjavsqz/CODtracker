@@ -46,3 +46,23 @@ CREATE TABLE IF NOT EXISTS perk_meta (
   updated_at  TIMESTAMP DEFAULT NOW()
 );
 ALTER TABLE perk_meta ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+CREATE TABLE IF NOT EXISTS equipment_meta (
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  category    VARCHAR(20)  NOT NULL,
+  tier        VARCHAR(5)   NOT NULL DEFAULT 'B',
+  description TEXT,
+  image_url   TEXT,
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS secondary_weapon      VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS secondary_category    VARCHAR(50);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS secondary_attachments JSONB DEFAULT '{}';
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS tactical              VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS lethal                VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk1                 VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk2                 VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk3                 VARCHAR(100);
+ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS melee                 VARCHAR(100);

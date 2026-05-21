@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Share from './pages/Share'
 import Perks from './pages/Perks'
+import LoadoutBuilder from './pages/LoadoutBuilder'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route index element={<Navigate to="/meta" replace />} />
           <Route path="meta" element={<Dashboard />} />
           <Route path="perks" element={<Perks />} />
+          <Route path="builder" element={<LoadoutBuilder />} />
           <Route path="loadouts" element={<Loadouts />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />

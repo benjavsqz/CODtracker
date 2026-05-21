@@ -20,16 +20,22 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 })
 
 router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { name, weapon_name, category, attachments, cod_share_code, notes, is_public } = req.body
+  const { name, weapon_name, category, attachments, cod_share_code, notes, is_public,
+          secondary_weapon, secondary_category, secondary_attachments,
+          tactical, lethal, perk1, perk2, perk3, melee } = req.body
   if (!name) return res.status(400).json({ error: 'El nombre es requerido' })
 
   try {
     const slug = genSlug()
     const result = await query(
       `INSERT INTO loadouts
-         (user_id, name, weapon_name, category, attachments, cod_share_code, notes, is_public, share_slug)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [req.user!.id, name, weapon_name, category, attachments ?? {}, cod_share_code, notes, is_public ?? false, slug]
+         (user_id, name, weapon_name, category, attachments, cod_share_code, notes, is_public, share_slug,
+          secondary_weapon, secondary_category, secondary_attachments,
+          tactical, lethal, perk1, perk2, perk3, melee)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+      [req.user!.id, name, weapon_name, category, attachments ?? {}, cod_share_code, notes, is_public ?? false, slug,
+       secondary_weapon, secondary_category, secondary_attachments ?? {},
+       tactical, lethal, perk1, perk2, perk3, melee]
     )
     res.status(201).json(result.rows[0])
   } catch {
@@ -38,14 +44,22 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
 })
 
 router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
-  const { name, weapon_name, category, attachments, cod_share_code, notes, is_public } = req.body
+  const { name, weapon_name, category, attachments, cod_share_code, notes, is_public,
+          secondary_weapon, secondary_category, secondary_attachments,
+          tactical, lethal, perk1, perk2, perk3, melee } = req.body
   try {
     const result = await query(
       `UPDATE loadouts SET
          name=$1, weapon_name=$2, category=$3, attachments=$4,
-         cod_share_code=$5, notes=$6, is_public=$7, updated_at=NOW()
-       WHERE id=$8 AND user_id=$9 RETURNING *`,
-      [name, weapon_name, category, attachments ?? {}, cod_share_code, notes, is_public, req.params.id, req.user!.id]
+         cod_share_code=$5, notes=$6, is_public=$7,
+         secondary_weapon=$8, secondary_category=$9, secondary_attachments=$10,
+         tactical=$11, lethal=$12, perk1=$13, perk2=$14, perk3=$15, melee=$16,
+         updated_at=NOW()
+       WHERE id=$17 AND user_id=$18 RETURNING *`,
+      [name, weapon_name, category, attachments ?? {}, cod_share_code, notes, is_public,
+       secondary_weapon, secondary_category, secondary_attachments ?? {},
+       tactical, lethal, perk1, perk2, perk3, melee,
+       req.params.id, req.user!.id]
     )
     if (!result.rows[0]) return res.status(404).json({ error: 'Loadout no encontrado' })
     res.json(result.rows[0])

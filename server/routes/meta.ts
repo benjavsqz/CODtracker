@@ -50,4 +50,20 @@ router.get('/perks', async (_req, res) => {
   }
 })
 
+router.get('/equipment', async (_req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, name, category, tier, description, image_url
+       FROM equipment_meta
+       ORDER BY
+         CASE category WHEN 'tactical' THEN 1 WHEN 'lethal' THEN 2 WHEN 'melee' THEN 3 END,
+         CASE tier WHEN 'S' THEN 1 WHEN 'A' THEN 2 WHEN 'B' THEN 3 WHEN 'C' THEN 4 END`
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error('[equipment] Error:', err)
+    res.status(500).json({ error: 'No se pudo obtener el equipo' })
+  }
+})
+
 export default router

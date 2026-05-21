@@ -30,6 +30,11 @@ const LoadoutsIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
   </svg>
 )
+const BuilderIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+  </svg>
+)
 
 export default function Layout() {
   const { user, logout, isAuthenticated } = useAuth()
@@ -54,6 +59,7 @@ export default function Layout() {
             <nav className="hidden sm:flex gap-1">
               <NavLink to="/meta" className={topLink}>Meta</NavLink>
               <NavLink to="/perks" className={topLink}>Ventajas</NavLink>
+              <NavLink to="/builder" className={topLink}>Builder</NavLink>
               {isAuthenticated && <NavLink to="/loadouts" className={topLink}>Mis Loadouts</NavLink>}
             </nav>
           </div>
@@ -101,6 +107,10 @@ export default function Layout() {
             <PerksIcon />
             <span>Ventajas</span>
           </NavLink>
+          <NavLink to="/builder" className={bottomLink}>
+            <BuilderIcon />
+            <span>Builder</span>
+          </NavLink>
           {isAuthenticated && (
             <NavLink to="/loadouts" className={bottomLink}>
               <LoadoutsIcon />
@@ -110,7 +120,7 @@ export default function Layout() {
           {!isAuthenticated && (
             <NavLink to="/register" className={bottomLink}>
               <LoadoutsIcon />
-              <span>Registrarse</span>
+              <span>Registro</span>
             </NavLink>
           )}
         </div>
