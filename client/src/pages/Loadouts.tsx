@@ -78,13 +78,13 @@ export default function Loadouts() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Mis Loadouts</h1>
-        <button onClick={openNew} className="px-4 py-2 text-sm bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-colors">
+        <button onClick={openNew} className="px-4 py-2 text-sm bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors">
           + Nuevo Loadout
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 mb-8">
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 sm:p-6 mb-8">
           <h2 className="text-lg font-semibold text-white mb-5">{editing ? 'Editar Loadout' : 'Nuevo Loadout'}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Field label="Nombre del loadout *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="Mi HRM-9 agresivo" />
@@ -92,7 +92,7 @@ export default function Loadouts() {
             <div>
               <label className="block text-xs text-gray-500 uppercase tracking-widest mb-2">Categoría</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500">
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500">
                 <option value="">Seleccionar...</option>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
@@ -102,7 +102,7 @@ export default function Loadouts() {
 
           <div className="mb-4">
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Accesorios</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {SLOTS.map(slot => (
                 <Field key={slot} label={slot} value={form.attachments[slot] ?? ''}
                   onChange={v => setForm(f => ({ ...f, attachments: { ...f.attachments, [slot]: v } }))}
@@ -123,7 +123,7 @@ export default function Loadouts() {
 
           <div className="flex gap-3 mt-6">
             <button onClick={handleSave} disabled={saving}
-              className="px-6 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-50">
+              className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button onClick={() => { setShowForm(false); setEditing(null) }}
@@ -138,7 +138,7 @@ export default function Loadouts() {
         <div className="text-center py-20 text-gray-500">
           <p className="text-4xl mb-4">🔫</p>
           <p>Sin loadouts todavía.</p>
-          <p className="text-sm mt-1">Ve a <span className="text-green-400 cursor-pointer" onClick={() => navigate('/meta')}>Meta</span> y haz clic en un arma para empezar.</p>
+          <p className="text-sm mt-1">Ve a <span className="text-red-400 cursor-pointer" onClick={() => navigate('/meta')}>Meta</span> y haz clic en un arma para empezar.</p>
         </div>
       )}
 
@@ -150,7 +150,7 @@ export default function Loadouts() {
                 <p className="font-semibold text-white">{l.name}</p>
                 <p className="text-sm text-gray-500">{l.weapon_name} {l.category && `· ${l.category}`}</p>
               </div>
-              {l.is_public && <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">Público</span>}
+              {l.is_public && <span className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full">Público</span>}
             </div>
 
             {Object.entries(l.attachments ?? {}).filter(([, v]) => v).length > 0 && (
@@ -163,7 +163,7 @@ export default function Loadouts() {
 
             {l.cod_share_code && (
               <button onClick={() => copyCode(l.cod_share_code)}
-                className="w-full mb-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-300 hover:border-green-500/50 hover:text-green-400 transition-colors flex items-center justify-center gap-2">
+                className="w-full mb-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-300 hover:border-red-500/50 hover:text-red-400 transition-colors flex items-center justify-center gap-2">
                 {copied === l.cod_share_code ? '✓ Copiado' : '📋 Copiar Share Code'}
               </button>
             )}
@@ -191,7 +191,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     <div>
       <label className="block text-xs text-gray-500 uppercase tracking-widest mb-2">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors" />
+        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-colors" />
     </div>
   )
 }

@@ -28,7 +28,7 @@ export default function Register() {
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-16">
+    <div className="max-w-sm mx-auto mt-8 sm:mt-16">
       <h1 className="text-2xl font-bold text-white mb-8 text-center">Crear cuenta</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {[
@@ -41,7 +41,7 @@ export default function Register() {
             <input
               type={type} value={form[key as keyof typeof form]}
               onChange={set(key)} required
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-colors"
               placeholder={placeholder}
             />
           </div>
@@ -49,14 +49,14 @@ export default function Register() {
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <button
           type="submit" disabled={loading}
-          className="w-full py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-colors font-medium disabled:opacity-50"
+          className="w-full py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors font-medium disabled:opacity-50"
         >
           {loading ? 'Creando cuenta...' : 'Crear cuenta'}
         </button>
       </form>
       <p className="text-center text-gray-500 text-sm mt-6">
         ¿Ya tienes cuenta?{' '}
-        <Link to="/login" className="text-green-400 hover:underline">Inicia sesión</Link>
+        <Link to="/login" className="text-red-400 hover:underline">Inicia sesión</Link>
       </p>
     </div>
   )

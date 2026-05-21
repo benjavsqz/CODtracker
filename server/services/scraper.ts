@@ -16,19 +16,6 @@ interface ScrapedWeapon {
   category: string
 }
 
-// Tries to extract __NEXT_DATA__ or __NUXT_DATA__ from a page for SPA frameworks
-function extractNextData(html: string): ScrapedWeapon[] | null {
-  const match = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
-  if (!match) return null
-  try {
-    const json = JSON.parse(match[1])
-    const str = JSON.stringify(json).toLowerCase()
-    // Heuristic: only use if it contains tier-related keywords
-    if (!str.includes('"s"') && !str.includes('tier')) return null
-    return null // Parse further if structure is known
-  } catch { return null }
-}
-
 // Parse codmunity.gg tier list page
 async function fetchCodmunity(): Promise<ScrapedWeapon[]> {
   const { data: html } = await axios.get('https://codmunity.gg/tier-list/warzone', {
@@ -37,10 +24,6 @@ async function fetchCodmunity(): Promise<ScrapedWeapon[]> {
 
   const $ = cheerio.load(html)
   const weapons: ScrapedWeapon[] = []
-
-  // Try Next.js embedded data first
-  const nextData = extractNextData(html)
-  if (nextData?.length) return nextData
 
   // codmunity uses tier headings then weapon cards under them
   // Pattern: look for elements that contain weapon names adjacent to tier markers

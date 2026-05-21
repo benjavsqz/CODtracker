@@ -132,8 +132,8 @@ function LevelSlider({ level, max, onChange, weaponName }: {
             className="h-full rounded-full"
             style={{
               background: `linear-gradient(90deg,
-                #4ade80 0%,
-                #22d3ee ${Math.min(pct * 0.6, 60)}%,
+                #f87171 0%,
+                #fb923c ${Math.min(pct * 0.6, 60)}%,
                 #f59e0b ${Math.min(pct * 0.8, 80)}%,
                 #ef4444 100%)`,
             }}
@@ -259,7 +259,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
               <p className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">Build Meta</p>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                 unlockedCount === entries.length
-                  ? 'text-green-400 bg-green-500/10'
+                  ? 'text-red-400 bg-red-500/10'
                   : 'text-amber-400 bg-amber-500/10'
               }`}>
                 {unlockedCount}/{entries.length} desbloqueados · 5 max WZ
@@ -268,7 +268,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
             <motion.button whileTap={{ scale: 0.92 }} onClick={copySetup}
               className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
                 copied
-                  ? 'bg-green-500/20 text-green-400 border-green-500/40'
+                  ? 'bg-red-500/20 text-red-400 border-red-500/40'
                   : 'bg-white/[0.04] text-white/35 border-white/[0.08] hover:text-white/70 hover:border-white/20'
               }`}>
               {copied ? '✓ Copiado' : '📋 Copiar'}
@@ -376,7 +376,7 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => onSave(w)}
-          className="w-full py-3 rounded-xl text-sm font-semibold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 hover:border-green-400/50 transition-all">
+          className="w-full py-3 rounded-xl text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-400/50 transition-all">
           {isAuth ? '+ Guardar como mi loadout' : '+ Registrarse para guardar'}
         </motion.button>
       </div>
@@ -418,14 +418,14 @@ export default function Dashboard() {
         className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Meta de <span className="bg-gradient-to-r from-green-300 to-emerald-500 bg-clip-text text-transparent">Armas</span>
+            Meta de <span className="bg-gradient-to-r from-red-300 to-red-500 bg-clip-text text-transparent">Armas</span>
           </h1>
           <p className="text-xs sm:text-sm text-white/30 mt-1">Warzone · BO7 Season 3 · {meta.length} armas rankeadas</p>
         </div>
         {!isAuthenticated && (
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
             onClick={() => navigate('/register')}
-            className="hidden sm:block px-4 py-2 text-sm bg-green-500/15 text-green-400 border border-green-500/30 rounded-xl hover:bg-green-500/25 transition-all">
+            className="hidden sm:block px-4 py-2 text-sm bg-red-500/15 text-red-400 border border-red-500/30 rounded-xl hover:bg-red-500/25 transition-all">
             Guardar loadouts →
           </motion.button>
         )}
@@ -445,7 +445,7 @@ export default function Dashboard() {
             }`}>
             {activeClass === tab && (
               <motion.span layoutId="tab-ind"
-                className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/10 border border-green-500/30"
+                className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-500/20 to-red-600/10 border border-red-500/30"
                 transition={{ type: 'spring' as const, stiffness: 400, damping: 30 }} />
             )}
             <span className="relative">{tab}</span>
@@ -554,7 +554,7 @@ export default function Dashboard() {
           <motion.div key="sheet" variants={sheetVariants} initial="hidden" animate="show" exit="exit"
             className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl flex flex-col"
             style={{
-              height: '88vh',
+              maxHeight: '85dvh',
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',

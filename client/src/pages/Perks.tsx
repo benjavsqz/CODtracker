@@ -75,7 +75,7 @@ export default function Perks() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         className="mb-8">
-        <h1 className="text-3xl font-black text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
           Ventajas <span className="bg-gradient-to-r from-sky-300 to-blue-500 bg-clip-text text-transparent">Meta</span>
         </h1>
         <p className="text-sm text-white/30 mt-1">Warzone · BO7 Season 3 · Mejores perks por slot</p>

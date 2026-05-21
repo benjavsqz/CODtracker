@@ -6,13 +6,13 @@ import PwaInstallBanner from './PwaInstallBanner'
 const topLink = ({ isActive }: { isActive: boolean }) =>
   `relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
     isActive
-      ? 'text-white bg-white/[0.08] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-green-400/70'
+      ? 'text-white bg-white/[0.08] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-red-400/70'
       : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.05]'
   }`
 
 const bottomLink = ({ isActive }: { isActive: boolean }) =>
   `flex flex-col items-center gap-1 px-4 py-2 text-xs font-medium transition-all ${
-    isActive ? 'text-green-400' : 'text-gray-600 hover:text-gray-400'
+    isActive ? 'text-red-400' : 'text-gray-600 hover:text-gray-400'
   }`
 
 const MetaIcon = () => (
@@ -38,12 +38,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Decorative logo in left gutter — only on wide screens */}
+      {/* Decorative background logo — centered full screen */}
       <div
-        className="fixed pointer-events-none select-none hidden lg:block"
-        style={{ left: 'max(10px, calc(50vw - 740px))', top: '68px', width: 'min(300px, calc(50vw - 630px))', opacity: 0.11 }}
+        className="fixed inset-0 pointer-events-none select-none flex items-center justify-center"
+        style={{ opacity: 0.07, zIndex: -1 }}
       >
-        <img src="/favicon.svg" alt="" className="w-full" />
+        <img src="/favicon.svg" alt="" className="w-full h-full object-contain" />
       </div>
       {/* Top header — visible on md+ */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/50 border-b border-white/[0.06]">
@@ -73,7 +73,7 @@ export default function Layout() {
                   Iniciar sesión
                 </NavLink>
                 <NavLink to="/register"
-                  className="px-3 py-1.5 text-xs bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/25 transition-all">
+                  className="px-3 py-1.5 text-xs bg-red-500/15 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/25 transition-all">
                   Registrarse
                 </NavLink>
               </>

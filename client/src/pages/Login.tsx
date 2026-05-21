@@ -26,14 +26,14 @@ export default function Login() {
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-16">
+    <div className="max-w-sm mx-auto mt-8 sm:mt-16">
       <h1 className="text-2xl font-bold text-white mb-8 text-center">Iniciar sesión</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs text-gray-500 uppercase tracking-widest mb-2">Email</label>
           <input
             type="email" value={email} onChange={e => setEmail(e.target.value)} required
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-colors"
             placeholder="tu@email.com"
           />
         </div>
@@ -41,21 +41,21 @@ export default function Login() {
           <label className="block text-xs text-gray-500 uppercase tracking-widest mb-2">Contraseña</label>
           <input
             type="password" value={password} onChange={e => setPassword(e.target.value)} required
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500 transition-colors"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-colors"
             placeholder="••••••••"
           />
         </div>
         {error && <p className="text-red-400 text-sm">{error}</p>}
         <button
           type="submit" disabled={loading}
-          className="w-full py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-colors font-medium disabled:opacity-50"
+          className="w-full py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors font-medium disabled:opacity-50"
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
       <p className="text-center text-gray-500 text-sm mt-6">
         ¿No tienes cuenta?{' '}
-        <Link to="/register" className="text-green-400 hover:underline">Regístrate</Link>
+        <Link to="/register" className="text-red-400 hover:underline">Regístrate</Link>
       </p>
     </div>
   )

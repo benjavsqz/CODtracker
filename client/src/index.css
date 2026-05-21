@@ -30,7 +30,7 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(74,222,128,.10) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(239,68,68,.07) 0%, transparent 60%),
     radial-gradient(ellipse 40% 30% at 80% 80%, rgba(96,165,250,.06) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
