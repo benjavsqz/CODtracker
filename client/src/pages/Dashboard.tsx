@@ -404,15 +404,26 @@ export default function Dashboard() {
   // Lock body scroll when mobile sheet is open
   useEffect(() => {
     if (selected) {
+      const scrollY = window.scrollY
       document.body.style.overflow = 'hidden'
-      document.body.style.touchAction = 'none'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
     } else {
+      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
       document.body.style.overflow = ''
-      document.body.style.touchAction = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      if (scrollY) window.scrollTo(0, scrollY)
     }
     return () => {
+      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
       document.body.style.overflow = ''
-      document.body.style.touchAction = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      if (scrollY) window.scrollTo(0, scrollY)
     }
   }, [selected])
 
@@ -587,7 +598,6 @@ export default function Dashboard() {
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',
-              touchAction: 'pan-y',
               overscrollBehavior: 'contain',
             }}>
             <div className="flex justify-center pt-3 pb-1 shrink-0">
