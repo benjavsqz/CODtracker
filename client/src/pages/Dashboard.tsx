@@ -17,6 +17,7 @@ interface WeaponMeta {
   meta_build: Record<string, AttVal>
   image_url: string | null
   recent_change: 'buff' | 'nerf' | 'new' | null
+  max_level: number | null
 }
 
 const TIERS = ['S', 'A', 'B', 'C'] as const
@@ -300,11 +301,11 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
   w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean
 }) {
   const cfg = TIER_CFG[w.tier] ?? TIER_CFG.C
-  const maxLv = 50 // BO7 weapon level cap
+  const maxLv = w.max_level ?? 50
 
   const [userLevel, setUserLevel] = useState<number>(() => {
     const saved = localStorage.getItem(`mwz:lv:${w.weapon_name}`)
-    return saved ? parseInt(saved) : 50
+    return saved ? parseInt(saved) : maxLv
   })
 
   const handleLevel = (n: number) => {
