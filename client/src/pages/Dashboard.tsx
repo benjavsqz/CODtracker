@@ -224,7 +224,12 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
   weaponName: string; tier: string; category: string; userLevel: number
 }) {
   const [copied, setCopied] = useState(false)
-  const entries = Object.entries(build).filter(([, v]) => attName(v))
+  // Warzone allows max 5 attachments — show top 5 by unlock level
+  const entries = Object.entries(build)
+    .filter(([, v]) => attName(v))
+    .sort((a, b) => (attLevel(b[1]) ?? 0) - (attLevel(a[1]) ?? 0))
+    .slice(0, 5)
+    .sort((a, b) => (attLevel(a[1]) ?? 0) - (attLevel(b[1]) ?? 0))
   const hasData = entries.length > 0
   const unlockedCount = entries.filter(([, v]) => {
     const lv = attLevel(v); return lv === null || userLevel >= lv
@@ -244,7 +249,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-3">
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3">
       {hasData ? (
         <>
           {/* Header row */}
@@ -256,7 +261,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
                   ? 'text-green-400 bg-green-500/10'
                   : 'text-amber-400 bg-amber-500/10'
               }`}>
-                {unlockedCount}/{entries.length} desbloqueados
+                {unlockedCount}/{entries.length} desbloqueados · 5 max WZ
               </span>
             </div>
             <motion.button whileTap={{ scale: 0.92 }} onClick={copySetup}
@@ -294,8 +299,12 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
 function WeaponPanel({ w, onClose, onSave, isAuth }: {
   w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean
 }) {
-  const cfg    = TIER_CFG[w.tier] ?? TIER_CFG.C
-  const maxLv  = 70
+  const cfg = TIER_CFG[w.tier] ?? TIER_CFG.C
+  // Max level = highest required attachment level for this weapon (+ buffer)
+  const maxLv = Math.max(
+    1,
+    ...Object.values(w.meta_build ?? {}).map(v => attLevel(v) ?? 0)
+  )
 
   const [userLevel, setUserLevel] = useState<number>(() => {
     const saved = localStorage.getItem(`mwz:lv:${w.weapon_name}`)
@@ -546,9 +555,9 @@ export default function Dashboard() {
       <AnimatePresence>
         {selected && (
           <motion.div key="sheet" variants={sheetVariants} initial="hidden" animate="show" exit="exit"
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl overflow-hidden flex flex-col"
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl flex flex-col"
             style={{
-              maxHeight: '92vh',
+              height: '88vh',
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',
@@ -556,7 +565,9 @@ export default function Dashboard() {
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/10" />
             </div>
-            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+              <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
