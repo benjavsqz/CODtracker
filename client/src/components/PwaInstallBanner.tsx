@@ -16,7 +16,6 @@ function isInStandaloneMode() {
 function isDismissedRecently() {
   const ts = localStorage.getItem('pwa_dismissed_at')
   if (!ts) return false
-  // expire after 1 day so user can be reminded
   return Date.now() - Number(ts) < 24 * 60 * 60 * 1000
 }
 
@@ -26,16 +25,15 @@ export default function PwaInstallBanner() {
   const [isIOSDevice] = useState(isIOS)
 
   useEffect(() => {
-    if (isInStandaloneMode()) return      // already installed
-    if (isDismissedRecently()) return     // dismissed within 7 days
+    if (isInStandaloneMode()) return
+    if (isDismissedRecently()) return
 
     if (isIOS()) {
-      // iOS never fires beforeinstallprompt — show native guide after delay
       const t = setTimeout(() => setVisible(true), 2500)
       return () => clearTimeout(t)
     }
 
-    // Check if the event was already captured at app boot (global stash)
+    // Check if the event was already captured at app boot
     const stashed = (window as any).__pwaPromptEvent as BeforeInstallPromptEvent | undefined
     if (stashed) {
       setPrompt(stashed)
@@ -45,6 +43,7 @@ export default function PwaInstallBanner() {
 
     const handler = (e: Event) => {
       e.preventDefault()
+      clearTimeout(fallback)
       setPrompt(e as BeforeInstallPromptEvent)
       setTimeout(() => setVisible(true), 1500)
     }
@@ -53,7 +52,15 @@ export default function PwaInstallBanner() {
       setVisible(false)
       localStorage.setItem('pwa_dismissed_at', String(Date.now()))
     })
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    // Fallback: show banner even if beforeinstallprompt never fires
+    // (Chrome doesn't fire it in incognito or on first visit)
+    const fallback = setTimeout(() => setVisible(true), 3000)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      clearTimeout(fallback)
+    }
   }, [])
 
   const install = async () => {
@@ -65,7 +72,6 @@ export default function PwaInstallBanner() {
       setVisible(false)
       localStorage.setItem('pwa_dismissed_at', String(Date.now()))
     }
-    // if dismissed, leave banner visible so user can retry next visit
   }
 
   const dismiss = () => {
@@ -76,7 +82,6 @@ export default function PwaInstallBanner() {
   return (
     <AnimatePresence>
       {visible && (
-        /* Bottom bar: horizontally centered, above mobile nav */
         <div className="fixed bottom-20 sm:bottom-6 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
           <motion.div
             initial={{ y: 100, opacity: 0 }}
@@ -102,7 +107,8 @@ export default function PwaInstallBanner() {
               </button>
             </div>
 
-            {!isIOSDevice && (
+            {/* Android con evento de instalación disponible */}
+            {!isIOSDevice && prompt && (
               <div className="flex gap-2 mt-3">
                 <button onClick={install}
                   className="flex-1 py-2.5 rounded-xl bg-red-600/20 text-red-400 border border-red-500/40 text-sm font-semibold hover:bg-red-600/30 transition-all flex items-center justify-center gap-2">
@@ -115,6 +121,17 @@ export default function PwaInstallBanner() {
               </div>
             )}
 
+            {/* Android sin evento — instrucciones manuales */}
+            {!isIOSDevice && !prompt && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-white/40 flex-wrap">
+                <span>Toca</span>
+                <span className="px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.1] text-white/55">⋮ Menú</span>
+                <span>→</span>
+                <span className="px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.1] text-white/55">Instalar aplicación</span>
+              </div>
+            )}
+
+            {/* iOS */}
             {isIOSDevice && (
               <div className="mt-3 flex items-center gap-2 text-xs text-white/35">
                 <span>Toca</span>
