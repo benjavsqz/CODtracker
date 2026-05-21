@@ -38,12 +38,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Decorative background logo — centered full screen */}
+      {/* Decorative background logo — centered, fills screen */}
       <div
-        className="fixed inset-0 pointer-events-none select-none flex items-center justify-center"
-        style={{ opacity: 0.07, zIndex: -1 }}
+        className="fixed inset-0 pointer-events-none select-none overflow-hidden flex items-center justify-center"
+        style={{ opacity: 0.08, zIndex: -1 }}
       >
-        <img src="/favicon.svg" alt="" className="w-full h-full object-contain" />
+        <img src="/favicon.svg" alt="" style={{ width: '100vmax', height: '100vmax', objectFit: 'contain' }} />
       </div>
       {/* Top header — visible on md+ */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/50 border-b border-white/[0.06]">
