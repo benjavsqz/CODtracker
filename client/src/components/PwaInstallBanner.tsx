@@ -92,9 +92,9 @@ export default function PwaInstallBanner() {
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{ border: '1px solid rgba(255,255,255,.12)', background: 'rgba(13,13,20,.97)', backdropFilter: 'blur(20px)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-black border border-white/[0.12] flex items-center justify-center shrink-0 shadow-lg">
-                <img src="/favicon.svg" alt="META WZ" className="w-7 h-7 object-contain" />
-              </div>
+              <img src="/icon-192.png" alt="META WZ"
+                className="w-11 h-11 rounded-xl shrink-0 shadow-lg object-cover"
+                style={{ border: '1px solid rgba(255,255,255,.12)' }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white leading-tight">Instalar META WZ</p>
                 <p className="text-xs text-white/40 mt-0.5 leading-tight">
