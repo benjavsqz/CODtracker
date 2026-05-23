@@ -318,47 +318,46 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* ─ Header: info izquierda + imagen derecha ─ */}
-      <div className="px-4 pt-3 pb-2 border-b border-white/[0.06] flex items-center gap-3 shrink-0">
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cfg.badge}`}>
-              Tier {w.tier}
-            </span>
-            {w.recent_change && (
-              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
-                w.recent_change === 'buff' ? 'bg-green-400/20 text-green-300 border border-green-400/40' :
-                w.recent_change === 'nerf' ? 'bg-red-400/20 text-red-300 border border-red-400/40' :
-                'bg-blue-400/20 text-blue-300 border border-blue-400/40'
-              }`}>
-                {w.recent_change === 'buff' ? '↑ BUFF' : w.recent_change === 'nerf' ? '↓ NERF' : '★ NUEVO'}
-              </span>
-            )}
-          </div>
-          <h2 className="text-sm font-bold text-white leading-tight truncate">{w.weapon_name}</h2>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium ${CAT_COLOR[w.category] ?? ''}`}>
-              {w.category}
-            </span>
-            {w.pick_rate > 0 && (
-              <span className={`text-[10px] ${cfg.label}`}>{w.pick_rate}% pick rate</span>
-            )}
-          </div>
-        </div>
-
-        {/* Imagen compacta */}
-        <motion.div initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.25 }}
-          className="w-28 shrink-0">
-          <WeaponImage src={w.image_url} name={w.weapon_name} className="h-14" />
+      {/* ─ Imagen full-width + badges overlay ─ */}
+      <div className="relative shrink-0 overflow-hidden"
+        style={{ height: '130px', background: 'linear-gradient(160deg,rgba(255,255,255,.015) 0%,rgba(255,255,255,.055) 100%)' }}>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.08, duration: 0.3 }}
+          className="h-full w-full">
+          <WeaponImage src={w.image_url} name={w.weapon_name} className="h-full" />
         </motion.div>
-
-        {/* Cerrar */}
+        {/* Tier + change badges — top left */}
+        <div className="absolute top-2.5 left-3 flex items-center gap-1.5">
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border backdrop-blur-sm ${cfg.badge}`}>
+            Tier {w.tier}
+          </span>
+          {w.recent_change && (
+            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full backdrop-blur-sm ${
+              w.recent_change === 'buff' ? 'bg-green-400/90 text-black' :
+              w.recent_change === 'nerf' ? 'bg-red-500/90 text-white' : 'bg-blue-500/90 text-white'
+            }`}>
+              {w.recent_change === 'buff' ? '↑ BUFF' : w.recent_change === 'nerf' ? '↓ NERF' : '★ NUEVO'}
+            </span>
+          )}
+        </div>
+        {/* Close — top right */}
         <button onClick={onClose}
-          className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-white/40 hover:text-white transition-all text-lg leading-none shrink-0 self-start">
+          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/50 hover:bg-black/75 backdrop-blur-sm flex items-center justify-center text-white/50 hover:text-white transition-all text-lg leading-none">
           ×
         </button>
+      </div>
+
+      {/* ─ Weapon name + meta info ─ */}
+      <div className="px-4 pt-2.5 pb-2 border-b border-white/[0.06] shrink-0">
+        <h2 className="text-base font-black text-white leading-tight tracking-tight">{w.weapon_name}</h2>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium ${CAT_COLOR[w.category] ?? ''}`}>
+            {w.category}
+          </span>
+          {w.pick_rate > 0 && (
+            <span className={`text-[10px] font-semibold ${cfg.label}`}>{w.pick_rate}% pick rate</span>
+          )}
+        </div>
       </div>
 
       {/* ─ Level slider ─ */}
