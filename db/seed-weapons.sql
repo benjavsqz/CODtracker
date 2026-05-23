@@ -51,8 +51,8 @@ INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, image_url, max_
 
 ('EGRT-17', 'A', 'Assault Rifle', 9.6,
  'https://static.wikia.nocookie.net/callofduty/images/0/0d/EGRT17_Loadout_Icon_BO7.png/revision/latest?cb=20260213000703',
- 41,
- '{"Underbarrel":{"name":"Quickstep Foregrip","level":8},"Rear Grip":{"name":"LTI Diode Grip","level":14},"Stock":{"name":"EAM Tatter Stock","level":23},"Barrel":{"name":"14.6\" LTI Verdin Barrel","level":31},"Muzzle":{"name":"Redwell Shade-X Suppressor","level":39}}'),
+ 43,
+ '{"Underbarrel":{"name":"Quickstep Foregrip","level":8},"Rear Grip":{"name":"LTI Diode Grip","level":14},"Stock":{"name":"EAM Tatter Stock","level":23},"Barrel":{"name":"14.6\" LTI Verdin Barrel","level":31},"Muzzle":{"name":"Redwell Shade-X Suppressor","level":41}}'),
 
 ('MK35 ISR', 'A', 'Assault Rifle', 8.8,
  'https://static.wikia.nocookie.net/callofduty/images/e/e7/MK35ISR_Loadout_Icon_BO7.png/revision/latest?cb=20260411232112',
@@ -76,8 +76,8 @@ INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, image_url, max_
 
 ('MXR-17', 'A', 'Assault Rifle', 6.4,
  'https://static.wikia.nocookie.net/callofduty/images/f/f9/MXR17_Loadout_Icon_BO7.png/revision/latest?cb=20251124142613',
- 46,
- '{"Optic":{"name":"FANG HoverPoint ELO","level":9},"Stock":{"name":"Winch Stock","level":16},"Magazine":{"name":"Rhodes Drum Mag","level":25},"Barrel":{"name":"17\" Greaves Scourge Barrel","level":35},"Muzzle":{"name":"Monolithic Suppressor","level":44}}'),
+ 47,
+ '{"Optic":{"name":"FANG HoverPoint ELO","level":9},"Stock":{"name":"Winch Stock","level":16},"Magazine":{"name":"Rhodes Drum Mag","level":25},"Barrel":{"name":"17\" Greaves Scourge Barrel","level":35},"Muzzle":{"name":"Monolithic Suppressor","level":45}}'),
 
 ('AK-27', 'A', 'Assault Rifle', 6.0,
  'https://static.wikia.nocookie.net/callofduty/images/f/f2/AK27_Loadout_Icon_BO7.png/revision/latest?cb=20251124142551',
