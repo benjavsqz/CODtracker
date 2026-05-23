@@ -1,5 +1,6 @@
 -- BO7 Warzone Equipment Seed
 -- Tactical, Lethal, Melee
+TRUNCATE equipment_meta RESTART IDENTITY;
 
 INSERT INTO equipment_meta (name, category, tier, description) VALUES
 -- TACTICAL
