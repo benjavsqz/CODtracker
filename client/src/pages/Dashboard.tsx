@@ -564,7 +564,7 @@ export default function Dashboard() {
       <AnimatePresence>
         {selected && (
           <motion.div key="panel" variants={panelVariants} initial="hidden" animate="show" exit="exit"
-            className="hidden lg:flex fixed top-0 right-0 h-full w-[340px] z-40 flex-col"
+            className="hidden lg:flex fixed top-0 right-0 h-full w-[340px] z-40 flex-col pt-14"
             style={{
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderLeft: '1px solid rgba(255,255,255,.07)',
@@ -579,7 +579,7 @@ export default function Dashboard() {
       <AnimatePresence>
         {selected && (
           <motion.div key="sheet" variants={sheetVariants} initial="hidden" animate="show" exit="exit"
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl overflow-hidden flex flex-col"
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] rounded-t-3xl overflow-hidden flex flex-col"
             style={{
               maxHeight: '92dvh',
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
