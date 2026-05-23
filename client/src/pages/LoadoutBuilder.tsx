@@ -64,7 +64,7 @@ const EQ_CLR: Record<string, string> = {
 
 const WEAPON_FILTERS = ['Todas', 'Assault Rifle', 'SMG', 'LMG', 'Sniper Rifle', 'Marksman Rifle', 'Battle Rifle', 'Shotgun', 'Handgun']
 
-const STEPS = ['Primaria', 'Accesorios', 'Secundaria', 'Accesorios', 'Equipo', 'Perks', 'Melee', 'Resumen']
+const STEPS = ['Primaria', 'Secundaria', 'Equipo', 'Perks', 'Resumen']
 
 /* ── Helpers ── */
 function getTop5Atts(build: Record<string, AttVal>): Array<{ slot: string; value: AttVal }> {
@@ -247,14 +247,17 @@ export default function LoadoutBuilder() {
   }
 
   /* ── Step renderers ── */
-  const renderWeaponStep = (isPrimary: boolean) => {
+  const renderCombinedStep = (isPrimary: boolean) => {
     const sel = isPrimary ? primary : secondary
+    const atts = isPrimary ? primaryAtts : secondaryAtts
+    const setAtts = isPrimary ? setPrimaryAtts : setSecondaryAtts
     const title = isPrimary ? 'Elige tu Arma Primaria' : 'Elige tu Arma Secundaria'
+    const activeCount = atts.filter(a => a.active).length
     return (
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto scrollbar-none">
         <p className="text-white/40 text-xs mb-3">{title}</p>
-        {/* Filter */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2 mb-3 shrink-0">
+        {/* Filter chips */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2 mb-3">
           {WEAPON_FILTERS.map(f => (
             <button key={f} onClick={() => setWeaponFilter(f)}
               className={`shrink-0 px-3 py-1 rounded-xl text-xs font-medium border transition-all ${
@@ -262,68 +265,59 @@ export default function LoadoutBuilder() {
               }`}>{f}</button>
           ))}
         </div>
-        {/* Grid */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pb-4">
-            {filteredWeapons.map(w => (
-              <WeaponCard key={w.weapon_name} w={w}
-                selected={sel?.weapon_name === w.weapon_name}
-                onClick={() => selectWeapon(w, isPrimary)} />
-            ))}
-          </div>
+        {/* Weapon grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pb-4">
+          {filteredWeapons.map(w => (
+            <WeaponCard key={w.weapon_name} w={w}
+              selected={sel?.weapon_name === w.weapon_name}
+              onClick={() => selectWeapon(w, isPrimary)} />
+          ))}
         </div>
-      </div>
-    )
-  }
 
-  const renderAttStep = (isPrimary: boolean) => {
-    const weapon = isPrimary ? primary : secondary
-    const atts   = isPrimary ? primaryAtts : secondaryAtts
-    const setAtts = isPrimary ? setPrimaryAtts : setSecondaryAtts
-    if (!weapon) return <p className="text-white/30 text-sm text-center py-8">No hay arma seleccionada</p>
-    const activeCount = atts.filter(a => a.active).length
-    return (
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex items-center justify-between mb-3 shrink-0">
-          <p className="text-white/40 text-xs">Accesorios de <span className="text-white font-bold">{weapon.weapon_name}</span></p>
-          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${activeCount <= 5 ? 'text-red-400 bg-red-500/10' : 'text-amber-400 bg-amber-500/10'}`}>
-            {activeCount}/5 WZ
-          </span>
-        </div>
-        <div className="flex-1 overflow-y-auto scrollbar-none space-y-2 pb-4">
-          {atts.map((a, i) => {
-            const lv = attLevel(a.value)
-            const slotClr = SLOT_CLR[a.slot] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
-            return (
-              <motion.div key={a.slot} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className={`rounded-2xl p-3 flex items-center gap-3 border transition-all ${
-                  a.active ? 'border-white/[0.1] bg-white/[0.04]' : 'border-white/[0.04] bg-white/[0.01] opacity-50'
-                }`}>
-                <button onClick={() => setAtts(prev => prev.map((x, j) => j === i ? { ...x, active: !x.active } : x))}
-                  className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                    a.active ? 'border-red-500 bg-red-500' : 'border-white/20 bg-transparent'
-                  }`}>
-                  {a.active && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${slotClr}`}>
-                    {SLOT_ES[a.slot] ?? a.slot}
-                  </span>
-                  <p className={`text-sm font-bold mt-0.5 ${a.active ? 'text-white' : 'text-white/40'}`}>{attName(a.value)}</p>
-                </div>
-                {lv !== null && (
-                  <span className="text-[9px] text-white/30 shrink-0">Nv.{lv}</span>
-                )}
-              </motion.div>
-            )
-          })}
-          {atts.length === 0 && (
-            <p className="text-white/20 text-sm text-center py-8">Este arma no tiene build meta cargado</p>
-          )}
-        </div>
+        {/* Attachment section — appears inline when a weapon is selected */}
+        {sel && (
+          <div className="mb-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+              <p className="text-white/40 text-xs">Accesorios · <span className="text-white font-bold">{sel.weapon_name}</span></p>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${activeCount <= 5 ? 'text-red-400 bg-red-500/10' : 'text-amber-400 bg-amber-500/10'}`}>
+                {activeCount}/5 WZ
+              </span>
+            </div>
+            <div className="p-3 space-y-2">
+              {atts.map((a, i) => {
+                const lv = attLevel(a.value)
+                const slotClr = SLOT_CLR[a.slot] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
+                return (
+                  <div key={a.slot}
+                    className={`rounded-xl p-3 flex items-center gap-3 border transition-all ${
+                      a.active ? 'border-white/[0.1] bg-white/[0.04]' : 'border-white/[0.04] bg-white/[0.01] opacity-50'
+                    }`}>
+                    <button onClick={() => setAtts(prev => prev.map((x, j) => j === i ? { ...x, active: !x.active } : x))}
+                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                        a.active ? 'border-red-500 bg-red-500' : 'border-white/20 bg-transparent'
+                      }`}>
+                      {a.active && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${slotClr}`}>
+                        {SLOT_ES[a.slot] ?? a.slot}
+                      </span>
+                      <p className={`text-sm font-bold mt-0.5 ${a.active ? 'text-white' : 'text-white/40'}`}>{attName(a.value)}</p>
+                    </div>
+                    {lv !== null && (
+                      <span className="text-[9px] text-white/30 shrink-0">Nv.{lv}</span>
+                    )}
+                  </div>
+                )
+              })}
+              {atts.length === 0 && (
+                <p className="text-white/20 text-sm text-center py-4">Este arma no tiene build meta cargado</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -345,7 +339,7 @@ export default function LoadoutBuilder() {
         </div>
       </div>
       {/* Lethal */}
-      <div className="mb-4">
+      <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 rounded-full bg-rose-400" />
           <p className="text-sm font-bold text-rose-400">Letal</p>
@@ -355,6 +349,20 @@ export default function LoadoutBuilder() {
           {equipment.filter(e => e.category === 'lethal').map(e => (
             <EquipCard key={e.id} item={e} selected={lethal === e.name}
               onClick={() => setLethal(lethal === e.name ? '' : e.name)} />
+          ))}
+        </div>
+      </div>
+      {/* Melee */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 rounded-full bg-amber-400" />
+          <p className="text-sm font-bold text-amber-400">Melee</p>
+          {melee && <span className="text-xs text-white/40">— {melee}</span>}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {equipment.filter(e => e.category === 'melee').map(e => (
+            <EquipCard key={e.id} item={e} selected={melee === e.name}
+              onClick={() => setMelee(melee === e.name ? '' : e.name)} />
           ))}
         </div>
       </div>
@@ -384,18 +392,6 @@ export default function LoadoutBuilder() {
           </div>
         )
       })}
-    </div>
-  )
-
-  const renderMeleeStep = () => (
-    <div className="flex-1 overflow-y-auto scrollbar-none pb-4">
-      <p className="text-white/40 text-xs mb-3">Elige tu arma cuerpo a cuerpo</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {equipment.filter(e => e.category === 'melee').map(e => (
-          <EquipCard key={e.id} item={e} selected={melee === e.name}
-            onClick={() => setMelee(melee === e.name ? '' : e.name)} />
-        ))}
-      </div>
     </div>
   )
 
@@ -480,17 +476,14 @@ export default function LoadoutBuilder() {
   }
 
   const stepContent = [
-    renderWeaponStep(true),
-    renderAttStep(true),
-    renderWeaponStep(false),
-    renderAttStep(false),
+    renderCombinedStep(true),
+    renderCombinedStep(false),
     renderEquipStep(),
     renderPerkStep(),
-    renderMeleeStep(),
     renderSummary(),
   ]
 
-  const isOptionalStep = step === 2 || step === 3 || step === 6
+  const isOptionalStep = step === 1
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">

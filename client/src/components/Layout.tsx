@@ -51,7 +51,7 @@ export default function Layout() {
         <img src="/favicon.svg" alt="" style={{ width: '100vmax', height: '100vmax', objectFit: 'contain' }} />
       </div>
       {/* Top header — visible on md+ */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/50 border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/80 border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-5">
             <img src="/logo-text.svg" alt="META WZ" className="h-5 sm:h-6 object-contain" />

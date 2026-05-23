@@ -98,6 +98,11 @@ function WeaponCard({
 }) {
   const [imgErr, setImgErr] = useState(false)
   const attCount = Object.values(attachments ?? {}).filter(Boolean).length
+  const userLevel = (() => {
+    if (!weaponName) return null
+    const stored = localStorage.getItem(`mwz:lv:${weaponName}`)
+    return stored ? Number(stored) : (meta?.max_level ?? null)
+  })()
 
   if (!weaponName) {
     return (
@@ -116,17 +121,14 @@ function WeaponCard({
     <motion.button whileTap={{ scale: 0.99 }} onClick={onClick}
       className="w-full rounded-xl border border-white/[0.08] hover:border-white/[0.18] overflow-hidden transition-all group text-left"
       style={{ background: 'rgba(255,255,255,.025)' }}>
-      {/* Top label row */}
-      <div className="px-3 py-1.5 border-b border-white/[0.05] flex items-center justify-between gap-2">
-        <span className="text-[8px] font-bold uppercase tracking-widest text-white/25">{label}</span>
-        <span className="text-[7px] text-white/15 border border-white/[0.07] px-1.5 py-0.5 rounded font-bold tracking-widest">BO7</span>
-      </div>
 
-      {/* Main row: info + image */}
-      <div className="flex items-center gap-0">
-        {/* Info column */}
-        <div className="flex-1 min-w-0 px-3 py-2.5">
+      {/* Top: label + badges + weapon name */}
+      <div className="px-3 pt-2.5 pb-2 flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span className="text-[7px] font-bold uppercase tracking-widest text-white/20 border border-white/[0.07] px-1.5 py-0.5 rounded">
+              {label}
+            </span>
             {category && (
               <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${CAT_COLOR[category] ?? ''}`}>
                 {category}
@@ -141,31 +143,41 @@ function WeaponCard({
           <p className="text-white font-black text-sm leading-tight tracking-tight truncate">
             {weaponName.toUpperCase()}
           </p>
-          <div className="flex items-center gap-1 mt-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < attCount ? 'bg-white/50' : 'bg-white/[0.08]'}`} />
-            ))}
-            <span className="text-[9px] text-white/20 ml-1">{attCount}/5</span>
-          </div>
         </div>
+        <span className="text-[7px] text-white/15 border border-white/[0.07] px-1.5 py-0.5 rounded font-bold tracking-widest shrink-0 mt-0.5">
+          BO7
+        </span>
+      </div>
 
-        {/* Weapon image */}
-        <div className="w-36 h-20 flex items-center justify-center px-3 shrink-0"
-          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,.01) 0%, rgba(255,255,255,.04) 100%)' }}>
-          {meta?.image_url && !imgErr ? (
-            <img src={meta.image_url} alt={weaponName}
-              onError={() => setImgErr(true)}
-              className="h-full w-full object-contain drop-shadow-2xl" />
-          ) : (
+      {/* Full-width weapon image with level circle */}
+      <div className="relative mx-3 rounded-lg overflow-hidden"
+        style={{ height: '80px', background: 'linear-gradient(135deg, rgba(255,255,255,.01) 0%, rgba(255,255,255,.05) 100%)' }}>
+        {meta?.image_url && !imgErr ? (
+          <img src={meta.image_url} alt={weaponName}
+            onError={() => setImgErr(true)}
+            className="h-full w-full object-contain drop-shadow-2xl" />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center">
             <span className="text-white/10 text-lg font-black tracking-widest">
               {weaponName.slice(0, 3).toUpperCase()}
             </span>
-          )}
-        </div>
+          </div>
+        )}
+        {userLevel !== null && (
+          <div className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full border-2 border-white/25 bg-black/70 flex items-center justify-center">
+            <span className="text-[10px] font-black text-white leading-none">{userLevel}</span>
+          </div>
+        )}
       </div>
 
-      {/* Footer */}
-      <div className="px-3 py-1.5 border-t border-white/[0.04] flex items-center justify-end">
+      {/* Footer: attachment dots + action */}
+      <div className="px-3 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < attCount ? 'bg-white/50' : 'bg-white/[0.08]'}`} />
+          ))}
+          <span className="text-[9px] text-white/20 ml-1">{attCount}/5</span>
+        </div>
         <span className="text-[9px] text-white/20 group-hover:text-white/50 transition-colors">
           Ver accesorios →
         </span>
