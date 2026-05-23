@@ -93,14 +93,14 @@ const sheetVariants: Variants = {
 }
 
 /* ── Helpers ── */
-function WeaponImage({ src, name }: { src: string | null; name: string }) {
+function WeaponImage({ src, name, className = 'h-16' }: { src: string | null; name: string; className?: string }) {
   const [err, setErr] = useState(false)
   if (!src || err) return (
-    <div className="w-full h-20 flex items-center justify-center">
-      <span className="text-white/10 text-xl font-black tracking-widest">{name.slice(0, 3).toUpperCase()}</span>
+    <div className={`w-full ${className} flex items-center justify-center`}>
+      <span className="text-white/10 text-lg font-black tracking-widest">{name.slice(0, 3).toUpperCase()}</span>
     </div>
   )
-  return <img src={src} alt={name} onError={() => setErr(true)} className="w-full h-20 object-contain drop-shadow-xl" />
+  return <img src={src} alt={name} onError={() => setErr(true)} className={`w-full ${className} object-contain drop-shadow-xl`} />
 }
 function SkeletonCard() {
   return (
@@ -118,12 +118,12 @@ function LevelSlider({ level, max, onChange, weaponName }: {
 }) {
   const pct = Math.round((level / max) * 100)
   return (
-    <div className="px-5 pt-4 pb-3 border-b border-white/[0.05]">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] text-white/30 uppercase tracking-widest font-semibold">Nivel del Arma</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-lg font-black text-white leading-none">{level}</span>
-          <span className="text-xs text-white/20">/ {max}</span>
+    <div className="px-4 pt-2 pb-2 border-b border-white/[0.05]">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] text-white/30 uppercase tracking-widest font-semibold">Nivel del Arma</span>
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-black text-white leading-none">{level}</span>
+          <span className="text-[10px] text-white/20">/ {max}</span>
         </div>
       </div>
       <div className="relative h-6 flex items-center">
@@ -174,7 +174,7 @@ function AttachmentCard({ slot, value, userLevel, index }: {
     <motion.div
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 + 0.1 }}
-      className={`relative rounded-xl px-3 py-2.5 transition-all ${
+      className={`relative rounded-xl px-3 py-2 transition-all ${
         locked
           ? 'opacity-40'
           : 'opacity-100'
@@ -251,11 +251,11 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-4 py-3" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+    <div className="flex-1 overflow-y-auto min-h-0 px-4 py-2" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       {hasData ? (
         <>
           {/* Header row */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <p className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">Build Meta</p>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -277,7 +277,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
           </div>
 
           {/* Attachment cards */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {entries.map(([slot, value], i) => (
               <AttachmentCard key={slot} slot={slot} value={value} userLevel={userLevel} index={i} />
             ))}
@@ -316,16 +316,16 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* ─ Header ─ */}
-      <div className="px-5 pt-4 pb-3 border-b border-white/[0.06] flex items-start justify-between shrink-0">
+      {/* ─ Header: info izquierda + imagen derecha ─ */}
+      <div className="px-4 pt-3 pb-2 border-b border-white/[0.06] flex items-center gap-3 shrink-0">
+        {/* Info */}
         <div className="flex-1 min-w-0">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border inline-block mb-1.5 ${cfg.badge}`}>
-            Tier {w.tier}
-          </span>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-base font-bold text-white leading-tight">{w.weapon_name}</h2>
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cfg.badge}`}>
+              Tier {w.tier}
+            </span>
             {w.recent_change && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
                 w.recent_change === 'buff' ? 'bg-green-400/20 text-green-300 border border-green-400/40' :
                 w.recent_change === 'nerf' ? 'bg-red-400/20 text-red-300 border border-red-400/40' :
                 'bg-blue-400/20 text-blue-300 border border-blue-400/40'
@@ -334,29 +334,30 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${CAT_COLOR[w.category] ?? ''}`}>
+          <h2 className="text-sm font-bold text-white leading-tight truncate">{w.weapon_name}</h2>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium ${CAT_COLOR[w.category] ?? ''}`}>
               {w.category}
             </span>
             {w.pick_rate > 0 && (
-              <span className={`text-xs ${cfg.label}`}>{w.pick_rate}% pick rate</span>
+              <span className={`text-[10px] ${cfg.label}`}>{w.pick_rate}% pick rate</span>
             )}
           </div>
         </div>
+
+        {/* Imagen compacta */}
+        <motion.div initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.25 }}
+          className="w-28 shrink-0">
+          <WeaponImage src={w.image_url} name={w.weapon_name} className="h-14" />
+        </motion.div>
+
+        {/* Cerrar */}
         <button onClick={onClose}
-          className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-white/40 hover:text-white transition-all ml-2 text-lg leading-none shrink-0">
+          className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-white/40 hover:text-white transition-all text-lg leading-none shrink-0 self-start">
           ×
         </button>
       </div>
-
-      {/* ─ Weapon image ─ */}
-      {w.image_url && (
-        <motion.div initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-          className="px-5 pt-2 pb-2 shrink-0" style={{ background: 'rgba(255,255,255,.015)' }}>
-          <WeaponImage src={w.image_url} name={w.weapon_name} />
-        </motion.div>
-      )}
 
       {/* ─ Level slider ─ */}
       <div className="shrink-0">
@@ -373,11 +374,11 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
       />
 
       {/* ─ Save action ─ */}
-      <div className="p-4 border-t border-white/[0.06] shrink-0"
-        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+      <div className="px-4 pt-2 pb-3 border-t border-white/[0.06] shrink-0"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
           onClick={() => onSave(w)}
-          className="w-full py-3 rounded-xl text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-400/50 transition-all">
+          className="w-full py-2.5 rounded-xl text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-400/50 transition-all">
           {isAuth ? '+ Guardar como mi loadout' : '+ Registrarse para guardar'}
         </motion.button>
       </div>
@@ -578,7 +579,7 @@ export default function Dashboard() {
           <motion.div key="sheet" variants={sheetVariants} initial="hidden" animate="show" exit="exit"
             className="lg:hidden fixed bottom-0 left-0 right-0 z-40 rounded-t-3xl overflow-hidden flex flex-col"
             style={{
-              maxHeight: '85dvh',
+              maxHeight: '92dvh',
               background: 'linear-gradient(180deg,#0d0d18 0%,#09090f 100%)',
               borderTop: '1px solid rgba(255,255,255,.08)',
               boxShadow: '0 -8px 40px rgba(0,0,0,.7)',
