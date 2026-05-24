@@ -1,5 +1,6 @@
 -- Warzone BO7 Season 3 Equipment Seed
 -- Fuente: COD Wiki + Warzone S3 patch notes (verificado mayo 2026)
+-- Melee eliminado del juego (no aplica en Warzone BR loadout)
 TRUNCATE equipment_meta RESTART IDENTITY;
 
 INSERT INTO equipment_meta (name, category, tier, description, image_url) VALUES
@@ -44,7 +45,7 @@ INSERT INTO equipment_meta (name, category, tier, description, image_url) VALUES
 ('Throwing Knife',
  'lethal', 'S',
  'Cuchillo arrojadizo recuperable. Ideal para rematar enemigos derribados sin gastar munición.',
- NULL),
+ 'https://static.wikia.nocookie.net/callofduty/images/d/d1/ThrowingKnife_Lethal_HUD_Icon_BO6_WZ2.png/revision/latest?cb=20241113202919'),
 
 ('C4',
  'lethal', 'A',
@@ -74,30 +75,4 @@ INSERT INTO equipment_meta (name, category, tier, description, image_url) VALUES
 ('Spring Mine',
  'lethal', 'C',
  'Mina antipersona que se activa al paso enemigo. Cubre flancos y rutas de rotación.',
- NULL),
-
--- ══ MELEE ═════════════════════════════════════════════════════════════════════
-('Ballistic Knife',
- 'melee', 'S',
- 'Lanza cuchillas de proyectil recuperables que eliminan de un golpe. Desbloqueo Season 1.',
- 'https://static.wikia.nocookie.net/callofduty/images/4/47/BallisticKnife_HUD_Icon_BO7.png/revision/latest?cb=20251207023244'),
-
-('Katana',
- 'melee', 'A',
- 'Alto daño con alcance de ~2m. Puede eliminar de un golpe. Desbloqueo Season 3 Reloaded.',
- 'https://static.wikia.nocookie.net/callofduty/images/e/e8/Katana_HUD_Icon_BO7.png/revision/latest?cb=20260512002408'),
-
-('Knife',
- 'melee', 'A',
- 'Cuchillo estándar de combate. Desbloqueado por defecto. Mayor velocidad de movimiento al equipar.',
- 'https://static.wikia.nocookie.net/callofduty/images/2/20/Knife_HUD_Icon_BO7.png/revision/latest?cb=20251124141846'),
-
-('H311-SAW',
- 'melee', 'B',
- 'Arma melee de largo alcance con golpes de amplio radio. Recompensa Season 2 Battle Pass.',
- 'https://static.wikia.nocookie.net/callofduty/images/c/cc/H311SAW_HUD_Icon_BO7.png/revision/latest?cb=20260213001900'),
-
-('Flatline MK.II',
- 'melee', 'B',
- 'Arma melee alternativa. Alto daño por impacto con alcance moderado. Desbloqueo en nivel 49.',
- 'https://static.wikia.nocookie.net/callofduty/images/2/2c/FlatlineMkII_HUD_Icon_BO7.png/revision/latest?cb=20251124141834');
+ 'https://static.wikia.nocookie.net/callofduty/images/a/ab/SpringMine_Lethal_HUD_Icon_BO6_WZ2.png/revision/latest?cb=20241113202744');

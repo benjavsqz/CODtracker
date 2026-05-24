@@ -195,7 +195,6 @@ export default function LoadoutBuilder() {
   const [perk1, setPerk1]           = useState('')
   const [perk2, setPerk2]           = useState('')
   const [perk3, setPerk3]           = useState('')
-  const [melee, setMelee]           = useState('')
   const [loadoutName, setLoadoutName] = useState('')
   const [isPublic, setIsPublic]     = useState(false)
 
@@ -242,7 +241,7 @@ export default function LoadoutBuilder() {
         perk1: perk1 || null,
         perk2: perk2 || null,
         perk3: perk3 || null,
-        melee: melee || null,
+        melee: null,
         is_public: isPublic,
         cod_share_code: '',
         notes: '',
@@ -357,20 +356,6 @@ export default function LoadoutBuilder() {
           ))}
         </div>
       </div>
-      {/* Melee */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-5 rounded-full bg-amber-400" />
-          <p className="text-sm font-bold text-amber-400">Melee</p>
-          {melee && <span className="text-xs text-white/40">— {melee}</span>}
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {equipment.filter(e => e.category === 'melee').map(e => (
-            <EquipCard key={e.id} item={e} selected={melee === e.name}
-              onClick={() => setMelee(melee === e.name ? '' : e.name)} />
-          ))}
-        </div>
-      </div>
     </div>
   )
 
@@ -409,7 +394,6 @@ export default function LoadoutBuilder() {
     if (perk1)     rows.push({ label: 'Perk 1', value: perk1, color: 'text-sky-400' })
     if (perk2)     rows.push({ label: 'Perk 2', value: perk2, color: 'text-rose-400' })
     if (perk3)     rows.push({ label: 'Perk 3', value: perk3, color: 'text-amber-400' })
-    if (melee)     rows.push({ label: 'Melee', value: melee, color: 'text-amber-300' })
     const primActiveAtts = primaryAtts.filter(a => a.active)
     const secActiveAtts  = secondaryAtts.filter(a => a.active)
 

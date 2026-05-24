@@ -270,14 +270,13 @@ function AttachmentSheet({
 function SlotBox({ label, name, iconType, meta }: {
   label: string
   name: string | null
-  iconType: 'tactical' | 'lethal' | 'melee'
+  iconType: 'tactical' | 'lethal'
   meta: EquipMeta | null
 }) {
   const [imgErr, setImgErr] = useState(false)
   const cfgMap = {
     tactical: { icon: '💊', clr: 'border-sky-500/25 bg-sky-500/5' },
     lethal:   { icon: '💣', clr: 'border-rose-500/25 bg-rose-500/5' },
-    melee:    { icon: '🗡️', clr: 'border-amber-500/25 bg-amber-500/5' },
   }
   const { icon, clr } = cfgMap[iconType]
   return (
@@ -458,8 +457,7 @@ export default function Share() {
         </div>
 
         {/* ── Equipment ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <SlotBox label="Melee"   name={l.melee}    iconType="melee"    meta={l.melee    ? (equipMetaMap[l.melee]    ?? null) : null} />
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <SlotBox label="Táctico" name={l.tactical} iconType="tactical" meta={l.tactical ? (equipMetaMap[l.tactical] ?? null) : null} />
           <SlotBox label="Letal"   name={l.lethal}   iconType="lethal"   meta={l.lethal   ? (equipMetaMap[l.lethal]   ?? null) : null} />
         </div>

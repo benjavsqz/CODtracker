@@ -80,7 +80,7 @@ const emptyForm = {
   attachments: {} as Record<string, string>,
   secondary_weapon: '', secondary_category: '',
   secondary_attachments: {} as Record<string, string>,
-  tactical: '', lethal: '', perk1: '', perk2: '', perk3: '', melee: '',
+  tactical: '', lethal: '', perk1: '', perk2: '', perk3: '',
   cod_share_code: '', notes: '', is_public: false,
 }
 
@@ -189,13 +189,12 @@ function WeaponCard({
 // ─── SlotBox ─────────────────────────────────────────────────────────────────
 
 function SlotBox({ label, name, iconType, imageUrl }: {
-  label: string; name: string | null; iconType: 'tactical' | 'lethal' | 'melee'; imageUrl?: string | null
+  label: string; name: string | null; iconType: 'tactical' | 'lethal'; imageUrl?: string | null
 }) {
   const [imgErr, setImgErr] = useState(false)
   const cfgMap = {
     tactical: { icon: '💊', clr: 'border-sky-500/25 bg-sky-500/5' },
     lethal:   { icon: '💣', clr: 'border-rose-500/25 bg-rose-500/5' },
-    melee:    { icon: '🗡️', clr: 'border-amber-500/25 bg-amber-500/5' },
   }
   const { icon, clr } = cfgMap[iconType]
   return (
@@ -424,7 +423,6 @@ function EditModal({
           <div className="grid grid-cols-2 gap-2">
             <FormField label="Táctico" value={form.tactical} onChange={v => set('tactical', v)} placeholder="Stim" />
             <FormField label="Letal" value={form.lethal} onChange={v => set('lethal', v)} placeholder="C4" />
-            <FormField label="Melee" value={form.melee} onChange={v => set('melee', v)} placeholder="Knife" />
             <FormField label="COD Share Code" value={form.cod_share_code} onChange={v => set('cod_share_code', v)} placeholder="Código del juego" />
             <FormField label="Perk 1" value={form.perk1} onChange={v => set('perk1', v)} placeholder="Scavenger" />
             <FormField label="Perk 2" value={form.perk2} onChange={v => set('perk2', v)} placeholder="Tempered" />
@@ -493,7 +491,7 @@ function LoadoutDetail({
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const hasEquip = loadout.melee || loadout.tactical || loadout.lethal
+  const hasEquip = loadout.tactical || loadout.lethal
   const hasPerks = loadout.perk1 || loadout.perk2 || loadout.perk3
 
   return (
@@ -562,8 +560,7 @@ function LoadoutDetail({
 
         {/* Equipment row */}
         {hasEquip && (
-          <div className="grid grid-cols-3 gap-2">
-            <SlotBox label="Melee"   name={loadout.melee}    iconType="melee"    imageUrl={loadout.melee    ? equipMap[loadout.melee]?.image_url    : null} />
+          <div className="grid grid-cols-2 gap-2">
             <SlotBox label="Táctico" name={loadout.tactical} iconType="tactical" imageUrl={loadout.tactical ? equipMap[loadout.tactical]?.image_url : null} />
             <SlotBox label="Letal"   name={loadout.lethal}   iconType="lethal"   imageUrl={loadout.lethal   ? equipMap[loadout.lethal]?.image_url   : null} />
           </div>
@@ -736,7 +733,6 @@ export default function Loadouts() {
         perk1: editTarget.perk1 ?? '',
         perk2: editTarget.perk2 ?? '',
         perk3: editTarget.perk3 ?? '',
-        melee: editTarget.melee ?? '',
         cod_share_code: editTarget.cod_share_code ?? '',
         notes: editTarget.notes ?? '',
         is_public: editTarget.is_public,
