@@ -20,8 +20,8 @@ export interface Loadout {
   perk2: string | null
   perk3: string | null
   melee: string | null
-  cod_share_code: string
-  notes: string
+  cod_share_code: string | null
+  notes: string | null
   is_public: boolean
   share_slug: string
   created_at: string

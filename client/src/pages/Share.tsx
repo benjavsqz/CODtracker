@@ -401,10 +401,10 @@ export default function Share() {
 
   return (
     <div className="min-h-screen" style={{ background: '#080810' }}>
-      {/* Watermark */}
+      {/* Watermark — same skull as in-app Layout */}
       <div className="fixed inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
-        style={{ zIndex: 0 }}>
-        <span className="text-[30vw] font-black text-white/[0.015] leading-none tracking-tighter">WZ</span>
+        style={{ opacity: 0.06, zIndex: 0 }}>
+        <img src="/favicon.svg" alt="" style={{ width: '100vmax', height: '100vmax', objectFit: 'contain' }} />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-6 sm:py-10">
@@ -458,14 +458,14 @@ export default function Share() {
         </div>
 
         {/* ── Equipment ───────────────────────────────────────────── */}
-        <div className="flex gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <SlotBox label="Melee"   name={l.melee}    iconType="melee"    meta={l.melee    ? (equipMetaMap[l.melee]    ?? null) : null} />
           <SlotBox label="Táctico" name={l.tactical} iconType="tactical" meta={l.tactical ? (equipMetaMap[l.tactical] ?? null) : null} />
           <SlotBox label="Letal"   name={l.lethal}   iconType="lethal"   meta={l.lethal   ? (equipMetaMap[l.lethal]   ?? null) : null} />
         </div>
 
         {/* ── Perks ───────────────────────────────────────────────── */}
-        <div className="flex gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-2 mb-4">
           <PerkBox label="Perk 1" perkName={l.perk1} perkMeta={l.perk1 ? perkMetaMap[l.perk1] : undefined} slot="Perk 1" />
           <PerkBox label="Perk 2" perkName={l.perk2} perkMeta={l.perk2 ? perkMetaMap[l.perk2] : undefined} slot="Perk 2" />
           <PerkBox label="Perk 3" perkName={l.perk3} perkMeta={l.perk3 ? perkMetaMap[l.perk3] : undefined} slot="Perk 3" />

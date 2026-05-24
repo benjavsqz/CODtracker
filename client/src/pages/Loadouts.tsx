@@ -516,7 +516,7 @@ function LoadoutDetail({
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
           {loadout.cod_share_code && (
-            <button onClick={() => copy(loadout.cod_share_code, 'code')}
+            <button onClick={() => copy(loadout.cod_share_code!, 'code')}
               className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white/40 border border-white/[0.08] hover:text-white hover:border-white/20 transition-all">
               {copied === 'code' ? '✓' : '📋'}
             </button>
@@ -539,7 +539,7 @@ function LoadoutDetail({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 pb-8 space-y-3">
         {/* Primary weapon */}
         <WeaponCard
           label="Arma Primaria"
@@ -562,7 +562,7 @@ function LoadoutDetail({
 
         {/* Equipment row */}
         {hasEquip && (
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <SlotBox label="Melee"   name={loadout.melee}    iconType="melee"    imageUrl={loadout.melee    ? equipMap[loadout.melee]?.image_url    : null} />
             <SlotBox label="Táctico" name={loadout.tactical} iconType="tactical" imageUrl={loadout.tactical ? equipMap[loadout.tactical]?.image_url : null} />
             <SlotBox label="Letal"   name={loadout.lethal}   iconType="lethal"   imageUrl={loadout.lethal   ? equipMap[loadout.lethal]?.image_url   : null} />
@@ -571,7 +571,7 @@ function LoadoutDetail({
 
         {/* Perks row */}
         {hasPerks && (
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <PerkBox label="Perk 1" perkName={loadout.perk1} perkMeta={perk1Meta} slot="Perk 1" />
             <PerkBox label="Perk 2" perkName={loadout.perk2} perkMeta={perk2Meta} slot="Perk 2" />
             <PerkBox label="Perk 3" perkName={loadout.perk3} perkMeta={perk3Meta} slot="Perk 3" />

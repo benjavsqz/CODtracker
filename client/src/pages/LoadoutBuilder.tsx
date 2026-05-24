@@ -518,7 +518,7 @@ export default function LoadoutBuilder() {
         </div>
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-white">{STEPS[step]}</p>
-          <p className="text-[10px] text-white/25">{STEPS.map((s, i) => i === step ? s : null).filter(Boolean)[0]}</p>
+          <p className="text-[10px] text-white/25">Paso {step + 1} / {STEPS.length}</p>
         </div>
       </div>
 
