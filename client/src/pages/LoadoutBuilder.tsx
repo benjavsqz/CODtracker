@@ -116,7 +116,9 @@ function WeaponCard({ w, selected, onClick }: { w: WeaponMeta; selected: boolean
 }
 
 function EquipCard({ item, selected, onClick }: { item: Equipment; selected: boolean; onClick: () => void }) {
+  const [imgErr, setImgErr] = useState(false)
   const clr = EQ_CLR[item.category] ?? ''
+  const fallback = item.category === 'tactical' ? '💉' : item.category === 'lethal' ? '💣' : '🗡️'
   return (
     <motion.button whileTap={{ scale: 0.95 }} onClick={onClick}
       className={`relative w-full rounded-2xl p-3 text-left transition-all border ${
@@ -130,7 +132,10 @@ function EquipCard({ item, selected, onClick }: { item: Equipment; selected: boo
         </span>
       )}
       <div className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-2 ${clr}`}>
-        <span className="text-base">{item.category === 'tactical' ? '💉' : item.category === 'lethal' ? '💣' : '🗡️'}</span>
+        {item.image_url && !imgErr
+          ? <img src={item.image_url} alt={item.name} onError={() => setImgErr(true)} className="w-7 h-7 object-contain" />
+          : <span className="text-base">{fallback}</span>
+        }
       </div>
       <p className="font-bold text-white text-xs leading-tight mb-1">{item.name}</p>
       <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black ${TIER_BADGE[item.tier] ?? TIER_BADGE.C}`}>{item.tier}</span>

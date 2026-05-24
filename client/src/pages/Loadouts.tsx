@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../lib/api'
 import { useAuth } from '../context/AuthContext'
-import type { Loadout } from '../types'
+import type { Loadout, Equipment } from '../types'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -188,9 +188,10 @@ function WeaponCard({
 
 // ─── SlotBox ─────────────────────────────────────────────────────────────────
 
-function SlotBox({ label, name, iconType }: {
-  label: string; name: string | null; iconType: 'tactical' | 'lethal' | 'melee'
+function SlotBox({ label, name, iconType, imageUrl }: {
+  label: string; name: string | null; iconType: 'tactical' | 'lethal' | 'melee'; imageUrl?: string | null
 }) {
+  const [imgErr, setImgErr] = useState(false)
   const cfgMap = {
     tactical: { icon: '💊', clr: 'border-sky-500/25 bg-sky-500/5' },
     lethal:   { icon: '💣', clr: 'border-rose-500/25 bg-rose-500/5' },
@@ -201,7 +202,10 @@ function SlotBox({ label, name, iconType }: {
     <div className={`flex-1 rounded-xl border p-2.5 ${name ? clr : 'border-white/[0.05] bg-white/[0.01]'}`}>
       <p className="text-[7px] font-bold uppercase tracking-widest text-white/25 mb-1.5">{label}</p>
       <div className="flex items-center gap-1.5">
-        <span className="text-base leading-none">{icon}</span>
+        {imageUrl && !imgErr
+          ? <img src={imageUrl} alt={name ?? ''} onError={() => setImgErr(true)} className="w-5 h-5 object-contain shrink-0" />
+          : <span className="text-base leading-none shrink-0">{icon}</span>
+        }
         <span className={`text-[11px] font-bold truncate ${name ? 'text-white' : 'text-white/15'}`}>
           {name ?? '—'}
         </span>
@@ -420,7 +424,7 @@ function EditModal({
           <div className="grid grid-cols-2 gap-2">
             <FormField label="Táctico" value={form.tactical} onChange={v => set('tactical', v)} placeholder="Stim" />
             <FormField label="Letal" value={form.lethal} onChange={v => set('lethal', v)} placeholder="C4" />
-            <FormField label="Melee" value={form.melee} onChange={v => set('melee', v)} placeholder="Karambit" />
+            <FormField label="Melee" value={form.melee} onChange={v => set('melee', v)} placeholder="Knife" />
             <FormField label="COD Share Code" value={form.cod_share_code} onChange={v => set('cod_share_code', v)} placeholder="Código del juego" />
             <FormField label="Perk 1" value={form.perk1} onChange={v => set('perk1', v)} placeholder="Scavenger" />
             <FormField label="Perk 2" value={form.perk2} onChange={v => set('perk2', v)} placeholder="Tempered" />
@@ -464,11 +468,12 @@ function FormField({ label, value, onChange, placeholder }: {
 // ─── LoadoutDetail ────────────────────────────────────────────────────────────
 
 function LoadoutDetail({
-  loadout, weaponMap, perks, onEdit, onDelete, onBack,
+  loadout, weaponMap, perks, equipMap, onEdit, onDelete, onBack,
 }: {
   loadout: Loadout
   weaponMap: Record<string, WeaponMeta>
   perks: PerkMeta[]
+  equipMap: Record<string, Equipment>
   onEdit: () => void
   onDelete: () => void
   onBack?: () => void
@@ -558,9 +563,9 @@ function LoadoutDetail({
         {/* Equipment row */}
         {hasEquip && (
           <div className="flex gap-2">
-            <SlotBox label="Melee" name={loadout.melee} iconType="melee" />
-            <SlotBox label="Táctico" name={loadout.tactical} iconType="tactical" />
-            <SlotBox label="Letal" name={loadout.lethal} iconType="lethal" />
+            <SlotBox label="Melee"   name={loadout.melee}    iconType="melee"    imageUrl={loadout.melee    ? equipMap[loadout.melee]?.image_url    : null} />
+            <SlotBox label="Táctico" name={loadout.tactical} iconType="tactical" imageUrl={loadout.tactical ? equipMap[loadout.tactical]?.image_url : null} />
+            <SlotBox label="Letal"   name={loadout.lethal}   iconType="lethal"   imageUrl={loadout.lethal   ? equipMap[loadout.lethal]?.image_url   : null} />
           </div>
         )}
 
@@ -626,7 +631,8 @@ export default function Loadouts() {
   const [loadouts, setLoadouts] = useState<Loadout[]>([])
   const [selected, setSelected] = useState<Loadout | null>(null)
   const [weaponMap, setWeaponMap] = useState<Record<string, WeaponMeta>>({})
-  const [perks, setPerks] = useState<PerkMeta[]>([])
+  const [perks, setPerks]         = useState<PerkMeta[]>([])
+  const [equipMap, setEquipMap]   = useState<Record<string, Equipment>>({})
   const [loading, setLoading] = useState(true)
   const [mobileView, setMobileView] = useState<'list' | 'detail'>('list')
 
@@ -642,12 +648,16 @@ export default function Loadouts() {
       api.get<Loadout[]>('/loadouts'),
       api.get<WeaponMeta[]>('/meta'),
       api.get<PerkMeta[]>('/meta/perks'),
-    ]).then(([lo, wm, pk]) => {
+      api.get<Equipment[]>('/meta/equipment'),
+    ]).then(([lo, wm, pk, eq]) => {
       setLoadouts(lo.data)
       const map: Record<string, WeaponMeta> = {}
       wm.data.forEach(w => { map[w.weapon_name] = w })
       setWeaponMap(map)
       setPerks(pk.data)
+      const eMap: Record<string, Equipment> = {}
+      eq.data.forEach(e => { eMap[e.name] = e })
+      setEquipMap(eMap)
       if (lo.data.length > 0) setSelected(lo.data[0])
 
       // Pre-fill from Dashboard "Save as loadout"
@@ -806,6 +816,7 @@ export default function Loadouts() {
             loadout={selected}
             weaponMap={weaponMap}
             perks={perks}
+            equipMap={equipMap}
             onEdit={() => openEdit(selected)}
             onDelete={() => handleDelete(selected.id)}
             onBack={mobileView === 'detail' ? () => setMobileView('list') : undefined}
