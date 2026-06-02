@@ -8,7 +8,7 @@ const HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
-const TIER_RANK: Record<string, number> = { S: 4, A: 3, B: 2, C: 1, D: 0, E: 0 }
+const TIER_RANK: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 }
 
 interface ScrapedWeapon {
   weapon_name: string
@@ -16,98 +16,90 @@ interface ScrapedWeapon {
   category: string
 }
 
-// Parse codmunity.gg tier list page
+// codmunity.gg Angular SSR — tier sections use CSS classes gold/silver/bronze/ng-star-inserted
+// Structure: .tier-list-section.gold > items, .tier-list-section.silver > items, etc.
 async function fetchCodmunity(): Promise<ScrapedWeapon[]> {
   const { data: html } = await axios.get('https://codmunity.gg/tier-list/warzone', {
-    headers: HEADERS, timeout: 10000,
+    headers: HEADERS, timeout: 15000,
   })
 
   const $ = cheerio.load(html)
   const weapons: ScrapedWeapon[] = []
 
-  // codmunity uses tier headings then weapon cards under them
-  // Pattern: look for elements that contain weapon names adjacent to tier markers
-  $('[class*="tier"], [class*="Tier"]').each((_i, el) => {
-    const tierText = $(el).text().trim().toUpperCase()
-    const tierMatch = tierText.match(/^([SABCDE])\s*(TIER)?/)
-    if (!tierMatch) return
+  // Map CSS class to tier letter
+  // gold = Absolute Meta (S), silver = A Tier, bronze = B Tier, rest = C
+  const classTierMap: Record<string, string> = {
+    gold: 'S',
+    silver: 'A',
+    bronze: 'B',
+  }
 
-    const tier = tierMatch[1]
-    // Weapon cards are siblings or children
-    $(el).nextAll().addBack().find('[class*="weapon"], [class*="card"], [class*="item"]').each((_j, card) => {
-      const name = $(card).find('[class*="name"], h3, h4, strong').first().text().trim()
-      if (name && name.length > 2 && name.length < 60) {
-        weapons.push({ weapon_name: name, tier, category: 'Assault Rifle' })
-      }
-    })
-  })
+  // Each tier section is a div with class containing "tier-list-section" plus gold/silver/bronze/ng-star
+  $('[class*="tier-list-section"]').each((_i, section) => {
+    const classList = $(section).attr('class') ?? ''
 
-  // Broader fallback: look for list items that follow a tier heading
-  if (!weapons.length) {
-    let currentTier = ''
-    $('h1, h2, h3, h4, li, div').each((_i, el) => {
-      const text = $(el).text().trim()
-      const tierMatch = text.match(/^(?:Tier\s)?([SABCDE])\s*(?:Tier|tier|TIER)?$/)
-      if (tierMatch && text.length < 20) {
-        currentTier = tierMatch[1].toUpperCase()
-        return
+    // Only process direct tier sections (not child elements)
+    if (!classList.includes('tier-list-section-item') &&
+        !classList.includes('tier-list-section-title') &&
+        !classList.includes('tier-list-section-items')) {
+
+      let tier = 'C'
+      for (const [cls, t] of Object.entries(classTierMap)) {
+        if (classList.includes(cls)) { tier = t; break }
       }
-      if (currentTier && text.length > 2 && text.length < 60 && !/tier/i.test(text)) {
-        // Heuristic: weapon names are short-ish and don't contain common UI words
-        if (!/click|view|meta|build|guide|best|top|warzone/i.test(text)) {
-          weapons.push({ weapon_name: text, tier: currentTier, category: 'Assault Rifle' })
+
+      // Extract weapon names and categories from items within this section
+      $(section).find('[class*="tier-list-section-item-title"]').each((_j, el) => {
+        const name = $(el).text().trim()
+        const subtitle = $(el)
+          .closest('[class*="tier-list-section-item-texts"]')
+          .find('[class*="tier-list-section-item-subtitle"]')
+          .first()
+          .text()
+          .trim()
+
+        if (name && name.length > 1 && name.length < 60) {
+          weapons.push({
+            weapon_name: name,
+            tier,
+            category: subtitle || guessCategory(name),
+          })
         }
+      })
+    }
+  })
+
+  // Fallback: also try the table view (weapon-link-text + weapon-category)
+  if (weapons.length < 5) {
+    const rows: Array<{ name: string; category: string }> = []
+    $('[class*="weapon-link-text"]').each((_i, el) => {
+      const name = $(el).text().trim()
+      if (name && name.length > 1 && name.length < 60) {
+        const cat = $(el)
+          .closest('tr')
+          .find('[class*="weapon-category"]')
+          .first()
+          .text()
+          .trim()
+        rows.push({ name, category: cat || guessCategory(name) })
       }
     })
+    // Without tier data from table, default to A
+    rows.forEach(r => weapons.push({ weapon_name: r.name, tier: 'A', category: r.category }))
   }
 
   return weapons
 }
 
-// Parse wzhub.gg — returns tier groupings in the HTML
-async function fetchWzhub(): Promise<ScrapedWeapon[]> {
-  const { data: html } = await axios.get('https://wzhub.gg/loadouts', {
-    headers: HEADERS, timeout: 10000,
-  })
-
-  const $ = cheerio.load(html)
-  const weapons: ScrapedWeapon[] = []
-
-  // wzhub uses sections labeled "Absolute Meta", "Meta", "Acceptable"
-  const tierMap: Record<string, string> = {
-    'absolute meta': 'S',
-    'meta': 'A',
-    'acceptable': 'B',
-    'unrated': 'C',
-  }
-
-  let currentTier = 'C'
-  $('h1, h2, h3, h4, span, div, p').each((_i, el) => {
-    const text = $(el).text().trim().toLowerCase()
-    for (const [label, tier] of Object.entries(tierMap)) {
-      if (text === label || text.startsWith(label)) {
-        currentTier = tier
-        return
-      }
-    }
-    // Weapon names are usually uppercase on wzhub
-    const raw = $(el).text().trim()
-    if (raw === raw.toUpperCase() && raw.length > 2 && raw.length < 40 &&
-        !/^(WARZONE|META|ABSOLUTE|TIER|ACCEPTABLE|UNRATED|SMG|AR|LMG|SNIPER|RIFLE)$/.test(raw)) {
-      weapons.push({ weapon_name: raw, tier: currentTier, category: 'Assault Rifle' })
-    }
-  })
-
-  return weapons
-}
-
-// Normalize category from context or default
+// Normalize weapon category
 function guessCategory(name: string): string {
   const n = name.toLowerCase()
-  if (/strider|hawker|vs.recon|xr.3|longbow|kar98/i.test(n)) return 'Sniper Rifle'
-  if (/swordfish|warden|m8a1|svk|dm56|mtz.intercept/i.test(n)) return 'Marksman Rifle'
-  if (/mk\.78|sokol|xm325|pulemyot|rapp|dg.58|lmg/i.test(n)) return 'LMG'
-  if (/voyak|ds20|egrt|mk35|mxr|peacekeeper|ak.27|maddox|m15|x9.mav|ram.7|mcw|holger|bp50|kastov/i.test(n)) return 'Assault Rifle'
+  if (/strider|hawker|vs.recon|mors|xr.3|longbow|kar98|mk35/i.test(n)) return 'Sniper Rifle'
+  if (/swordfish|warden|m8a1|svk|dm56|mtz.intercept|svt|mk35 isr/i.test(n)) return 'Marksman Rifle'
+  if (/mk\.78|sokol|xm325|pulemyot|rapp|dg.58|lmg|rev-46/i.test(n)) return 'LMG'
+  if (/voyak|ds20|egrt|mk35|mxr|peacekeeper|ak.?27|maddox|m15|x9.mav|ram.?7|mcw|holger|bp50|kastov|carbon|vst/i.test(n)) return 'Assault Rifle'
+  if (/1911|pistol|velox|handgun/i.test(n)) return 'Handgun'
+  if (/m10|breacher|echo|shotgun|ravager/i.test(n)) return 'Shotgun'
   return 'SMG'
 }
 
@@ -121,21 +113,15 @@ function detectChange(oldTier: string, newTier: string): 'buff' | 'nerf' | null 
 }
 
 export async function scrapeWeaponMeta(): Promise<void> {
-  console.log('[scraper] Intentando fetch de meta de armas...')
+  console.log('[scraper] Intentando fetch de meta de armas (codmunity.gg)...')
 
   let scraped: ScrapedWeapon[] = []
 
-  // Try each source in order
-  for (const [name, fn] of [['codmunity.gg', fetchCodmunity], ['wzhub.gg', fetchWzhub]] as const) {
-    try {
-      scraped = await fn()
-      if (scraped.length >= 5) {
-        console.log(`[scraper] ${scraped.length} armas obtenidas de ${name}`)
-        break
-      }
-    } catch (err: any) {
-      console.warn(`[scraper] ${name} falló: ${err.message}`)
-    }
+  try {
+    scraped = await fetchCodmunity()
+    console.log(`[scraper] ${scraped.length} armas obtenidas de codmunity.gg`)
+  } catch (err: any) {
+    console.warn(`[scraper] codmunity.gg falló: ${err.message}`)
   }
 
   if (scraped.length < 5) {
@@ -153,9 +139,7 @@ export async function scrapeWeaponMeta(): Promise<void> {
   })
 
   // Get current state from DB
-  const existing = await query(
-    'SELECT weapon_name, tier FROM weapon_meta'
-  )
+  const existing = await query('SELECT weapon_name, tier FROM weapon_meta')
   const currentMap = new Map(existing.rows.map(r => [r.weapon_name.toLowerCase(), r.tier]))
 
   let updated = 0
@@ -163,10 +147,9 @@ export async function scrapeWeaponMeta(): Promise<void> {
     const key = w.weapon_name.toLowerCase()
     const oldTier = currentMap.get(key)
     const change = oldTier ? detectChange(oldTier, w.tier) : 'new' as const
-    const category = guessCategory(w.weapon_name)
+    const category = w.category || guessCategory(w.weapon_name)
 
     if (oldTier) {
-      // Update existing weapon
       await query(
         `UPDATE weapon_meta
          SET tier = $1, category = $2, updated_at = NOW(),
@@ -175,7 +158,6 @@ export async function scrapeWeaponMeta(): Promise<void> {
         [w.tier, category, change, key]
       )
     } else {
-      // Insert new weapon
       await query(
         `INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, change_type, changed_at)
          VALUES ($1, $2, $3, 0, 'new', NOW())
@@ -186,5 +168,5 @@ export async function scrapeWeaponMeta(): Promise<void> {
     if (change) updated++
   }
 
-  console.log(`[scraper] ${updated} armas con cambios detectados`)
+  console.log(`[scraper] ${updated} armas con cambios detectados, ${unique.length} total procesadas`)
 }
