@@ -1,0 +1,25 @@
+name: Deploy to Coolify
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST "https://coolify.shifters.cl/api/v1/deploy" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"uuid": "m13ca0mt0t8fmk35sajwt7b0", "force_rebuild": true}')
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          echo "Response: $body"
+          echo "HTTP code: $http_code"
+          if [ "$http_code" != "200" ]; then
+            echo "Deploy trigger failed"
+            exit 1
+          fi
+          echo "Deploy queued successfully"
