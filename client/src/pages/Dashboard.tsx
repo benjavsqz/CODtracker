@@ -525,11 +525,11 @@ export default function Dashboard() {
                       <div className="relative mb-2 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.03)' }}>
                         <WeaponImage src={w.image_url} name={w.weapon_name} />
                         {w.recent_change && (
-                          <span className={`animate-badge-pop absolute top-1.5 right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none ${
+                          <span className={`animate-badge-pop absolute top-1.5 right-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none flex items-center gap-0.5 shadow-lg ${
                             w.recent_change === 'buff' ? 'bg-green-400 text-black' :
                             w.recent_change === 'nerf' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
                           }`}>
-                            {w.recent_change === 'buff' ? '↑' : w.recent_change === 'nerf' ? '↓' : 'NEW'}
+                            {w.recent_change === 'buff' ? '↑ BUFF' : w.recent_change === 'nerf' ? '↓ NERF' : '★ NEW'}
                           </span>
                         )}
                       </div>

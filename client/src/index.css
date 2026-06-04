@@ -38,6 +38,14 @@ body::before {
 
 #root { position: relative; z-index: 1; }
 
+/* ── Buff / Nerf badge pop-in ─────────────────── */
+@keyframes badge-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  70%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-badge-pop { animation: badge-pop 0.35s cubic-bezier(.34,1.56,.64,1) both; }
+
 /* ── Glass card ───────────────────────────── */
 .glass {
   background: rgba(255,255,255,.03);

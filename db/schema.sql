@@ -35,6 +35,7 @@ ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS change_type VARCHAR(10);
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS changed_at TIMESTAMP;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS max_level INTEGER DEFAULT 50;
+CREATE UNIQUE INDEX IF NOT EXISTS weapon_meta_name_unique ON weapon_meta (weapon_name);
 
 CREATE TABLE IF NOT EXISTS perk_meta (
   id          SERIAL PRIMARY KEY,

@@ -15,6 +15,7 @@ interface WeaponMeta {
   meta_build: Record<string, unknown>
   image_url: string | null
   max_level: number | null
+  recent_change: 'buff' | 'nerf' | 'new' | null
 }
 
 interface PerkMeta {
@@ -162,6 +163,14 @@ function WeaponCard({
               {weaponName.slice(0, 3).toUpperCase()}
             </span>
           </div>
+        )}
+        {meta?.recent_change && (
+          <span className={`animate-badge-pop absolute top-1.5 left-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none shadow-lg ${
+            meta.recent_change === 'buff' ? 'bg-green-400 text-black' :
+            meta.recent_change === 'nerf' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+          }`}>
+            {meta.recent_change === 'buff' ? '↑ BUFF' : meta.recent_change === 'nerf' ? '↓ NERF' : '★ NEW'}
+          </span>
         )}
         {userLevel !== null && (
           <div className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full border-2 border-white/25 bg-black/70 flex items-center justify-center">

@@ -1,7 +1,7 @@
 -- Meta de armas Warzone Season 3 2026 (BO7)
 -- max_level: nivel máximo real por arma (verificado en codmunity.gg / game8.co)
 -- meta_build: 5 attachments con niveles distribuidos proporcionalmente al max_level real
-TRUNCATE weapon_meta RESTART IDENTITY;
+-- ON CONFLICT preserva change_type/changed_at para mantener historial buff/nerf entre deploys
 
 INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, image_url, max_level, meta_build) VALUES
 
@@ -161,4 +161,14 @@ INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, image_url, max_
 ('RK-9', 'C', 'SMG', 0.5,
  'https://static.wikia.nocookie.net/callofduty/images/f/f0/RK9_Loadout_Icon_BO7.png/revision/latest?cb=20251124142617',
  42,
- '{"Underbarrel":{"name":"MFS Ironlung Handstop","level":9},"Stock":{"name":"VAS Conduit Stock","level":15},"Magazine":{"name":"Alliance Extended Mag","level":23},"Barrel":{"name":"13.6\" Mercurial Barrel","level":32},"Muzzle":{"name":"Redwell Shade-X Suppressor","level":40}}');
+ '{"Underbarrel":{"name":"MFS Ironlung Handstop","level":9},"Stock":{"name":"VAS Conduit Stock","level":15},"Magazine":{"name":"Alliance Extended Mag","level":23},"Barrel":{"name":"13.6\" Mercurial Barrel","level":32},"Muzzle":{"name":"Redwell Shade-X Suppressor","level":40}}')
+ON CONFLICT (weapon_name) DO UPDATE SET
+  tier       = EXCLUDED.tier,
+  category   = EXCLUDED.category,
+  pick_rate  = EXCLUDED.pick_rate,
+  image_url  = EXCLUDED.image_url,
+  max_level  = EXCLUDED.max_level,
+  meta_build = EXCLUDED.meta_build,
+  updated_at = NOW()
+  -- change_type y changed_at NO se tocan: preservan historial buff/nerf entre deploys
+;
