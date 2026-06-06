@@ -40,15 +40,15 @@ interface VentajaItem {
 }
 
 interface ClaseItem {
-  id: number
+  id: string | number
   estilo: string
   nombre: string
   icono: string
   dificultad: string
   modos: string[]
   descripcion: string
-  primaria: { arma: string; attachments: Array<{ slot: string; item: string }> }
-  secundaria: { arma: string; attachments: Array<{ slot: string; item: string }> }
+  primaria: { nombre?: string; arma?: string; attachments: Array<{ slot: string; item: string }> }
+  secundaria: { nombre?: string; arma?: string; attachments: Array<{ slot: string; item: string }> }
   stats: Record<string, number>
   color: string
 }
@@ -292,6 +292,9 @@ async function saveClases(clases: ClaseItem[]): Promise<void> {
     const secAtt   = Object.fromEntries(
       (c.secundaria?.attachments ?? []).map(a => [translateSlot(a.slot), a.item]),
     )
+    // Support both 'nombre' and 'arma' field names for weapon name
+    const primArma = c.primaria?.nombre ?? c.primaria?.arma ?? null
+    const secArma  = c.secundaria?.nombre ?? c.secundaria?.arma ?? null
 
     await query(
       `INSERT INTO meta_clases
@@ -306,8 +309,8 @@ async function saveClases(clases: ClaseItem[]): Promise<void> {
       [
         c.nombre, c.estilo, c.descripcion, c.dificultad,
         c.modos ?? [], c.color ?? null,
-        c.primaria?.arma ?? null, primAtt,
-        c.secundaria?.arma ?? null, secAtt,
+        primArma, primAtt,
+        secArma, secAtt,
         c.stats ?? {},
       ],
     )
