@@ -69,9 +69,9 @@ interface NoticiaIndex {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function rankToTier(r: number): string {
-  if (r <= 3)  return 'S'
-  if (r <= 8)  return 'A'
-  if (r <= 13) return 'B'
+  if (r <= 5)  return 'S'
+  if (r <= 10) return 'A'
+  if (r <= 14) return 'B'
   return 'C'
 }
 
@@ -107,13 +107,15 @@ function translateSlot(slot: string): string {
 
 // Safely evaluate a JS file that declares a top-level variable
 function evalJSVar(js: string, varName: string): unknown {
-  const safe = js.replace(new RegExp(`^\\s*const\\s+${varName}\\s*=`), `var ${varName} =`)
+  // Replace 'const VARNAME =' with 'var VARNAME =' (file may have leading comments)
+  const safe = js.replace(new RegExp(`\\bconst\\s+${varName}\\s*=`), `var ${varName} =`)
   const sandbox: Record<string, unknown> = {}
   try {
     vm.createContext(sandbox)
-    vm.runInContext(safe, sandbox, { timeout: 3000 })
+    vm.runInContext(safe, sandbox, { timeout: 5000 })
     return sandbox[varName]
-  } catch {
+  } catch (e) {
+    console.warn(`[scraper] evalJSVar(${varName}) error:`, (e as Error).message?.slice(0, 120))
     return undefined
   }
 }
