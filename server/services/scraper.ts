@@ -206,15 +206,15 @@ export async function scrapeWeaponMeta(): Promise<void> {
       await query(
         `UPDATE weapon_meta
          SET tier=$1, category=$2, updated_at=NOW(),
-             change_type=$3,
-             changed_at=CASE WHEN $3 IS NOT NULL THEN $4 ELSE changed_at END
+             change_type=$3::varchar,
+             changed_at=CASE WHEN $3::varchar IS NOT NULL THEN $4 ELSE changed_at END
          WHERE LOWER(weapon_name)=$5`,
         [w.tier, category, changeType, changedAt, key]
       )
     } else {
       await query(
         `INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, change_type, changed_at)
-         VALUES ($1,$2,$3,0,$4,$5)
+         VALUES ($1,$2,$3,0,$4::varchar,$5)
          ON CONFLICT (weapon_name) DO NOTHING`,
         [w.weapon_name, w.tier, category, changeType, changedAt]
       )
