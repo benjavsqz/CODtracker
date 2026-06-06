@@ -29,59 +29,63 @@ jobs:
 
       - name: Build and redeploy containers
         run: |
-          ssh -i ~/.ssh/deploy_key -p 22022 -o StrictHostKeyChecking=no root@129.121.56.29 << 'ENDSSH'
-            set -e
-            ID=m13ca0mt0t8fmk35sajwt7b0
+          # Write deploy script to VPS to avoid shell escaping issues with backticks in Traefik labels
+          cat > /tmp/deploy_metawz.sh << 'SCRIPT'
+          #!/bin/bash
+          set -e
+          ID=m13ca0mt0t8fmk35sajwt7b0
+          DOMAIN=metawz.shifters.cl
 
-            echo "=== Building server image ==="
-            docker build -t metawz-server-new:latest -f /opt/metawz/server/Dockerfile /opt/metawz
+          echo "=== Building server image ==="
+          docker build -t metawz-server-new:latest -f /opt/metawz/server/Dockerfile /opt/metawz
 
-            echo "=== Building client image ==="
-            docker build -t metawz-client-new:latest /opt/metawz/client
+          echo "=== Building client image ==="
+          docker build -t metawz-client-new:latest /opt/metawz/client
 
-            echo "=== Restarting server ==="
-            docker stop server-metawz-new 2>/dev/null || true
-            docker rm   server-metawz-new 2>/dev/null || true
-            docker run -d \
-              --name server-metawz-new \
-              --restart unless-stopped \
-              --env DB_USER=wztracker \
-              --env DB_PASS=wztracker123 \
-              --env DB_NAME=wztracker \
-              --env DB_HOST=db \
-              --env DB_PORT=5432 \
-              --env JWT_SECRET=wzt_super_secret_change_in_production_2026 \
-              --env PORT=3001 \
-              --env HOST=0.0.0.0 \
-              metawz-server-new:latest
-            docker network connect coolify        server-metawz-new 2>/dev/null || true
-            docker network connect --alias server $ID server-metawz-new
+          echo "=== Restarting server ==="
+          docker stop server-metawz-new 2>/dev/null || true
+          docker rm   server-metawz-new 2>/dev/null || true
+          docker run -d \
+            --name server-metawz-new \
+            --restart unless-stopped \
+            --env DB_USER=wztracker \
+            --env DB_PASS=wztracker123 \
+            --env DB_NAME=wztracker \
+            --env DB_HOST=db \
+            --env DB_PORT=5432 \
+            --env JWT_SECRET=wzt_super_secret_change_in_production_2026 \
+            --env PORT=3001 \
+            --env HOST=0.0.0.0 \
+            metawz-server-new:latest
+          docker network connect coolify "$ID" 2>/dev/null || true
+          docker network connect --alias server "$ID" server-metawz-new
 
-            echo "=== Restarting client ==="
-            docker stop client-metawz-new 2>/dev/null || true
-            docker rm   client-metawz-new 2>/dev/null || true
-            docker run -d \
-              --name client-metawz-new \
-              --restart unless-stopped \
-              --network $ID \
-              --label "traefik.enable=true" \
-              --label "traefik.http.middlewares.gzip.compress=true" \
-              --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
-              --label "traefik.http.routers.http-0-${ID}-client.entryPoints=http" \
-              --label "traefik.http.routers.http-0-${ID}-client.middlewares=redirect-to-https" \
-              --label "traefik.http.routers.http-0-${ID}-client.rule=Host(\`metawz.shifters.cl\`) && PathPrefix(\`/\`)" \
-              --label "traefik.http.routers.https-0-${ID}-client.entryPoints=https" \
-              --label "traefik.http.routers.https-0-${ID}-client.middlewares=gzip" \
-              --label "traefik.http.routers.https-0-${ID}-client.rule=Host(\`metawz.shifters.cl\`) && PathPrefix(\`/\`)" \
-              --label "traefik.http.routers.https-0-${ID}-client.tls=true" \
-              --label "traefik.http.routers.https-0-${ID}-client.tls.certresolver=letsencrypt" \
-              --label "traefik.http.services.metawz.loadbalancer.server.port=80" \
-              metawz-client-new:latest
-            docker network connect coolify client-metawz-new 2>/dev/null || true
+          echo "=== Restarting client ==="
+          docker stop client-metawz-new 2>/dev/null || true
+          docker rm   client-metawz-new 2>/dev/null || true
+          docker run -d \
+            --name client-metawz-new \
+            --restart unless-stopped \
+            --network "$ID" \
+            --label "traefik.enable=true" \
+            --label "traefik.http.middlewares.gzip.compress=true" \
+            --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
+            --label "traefik.http.routers.http-0-${ID}-client.entryPoints=http" \
+            --label "traefik.http.routers.http-0-${ID}-client.middlewares=redirect-to-https" \
+            --label "traefik.http.routers.http-0-${ID}-client.rule=Host(\`${DOMAIN}\`) && PathPrefix(\`/\`)" \
+            --label "traefik.http.routers.https-0-${ID}-client.entryPoints=https" \
+            --label "traefik.http.routers.https-0-${ID}-client.middlewares=gzip" \
+            --label "traefik.http.routers.https-0-${ID}-client.rule=Host(\`${DOMAIN}\`) && PathPrefix(\`/\`)" \
+            --label "traefik.http.routers.https-0-${ID}-client.tls=true" \
+            --label "traefik.http.routers.https-0-${ID}-client.tls.certresolver=letsencrypt" \
+            --label "traefik.http.services.metawz.loadbalancer.server.port=80" \
+            metawz-client-new:latest
+          docker network connect coolify client-metawz-new 2>/dev/null || true
 
-            sleep 6
-            echo "=== Health check ==="
-            curl -sf http://localhost/api/health || curl -sf https://metawz.shifters.cl/api/health
-            echo ""
-            echo "Deploy completado: $(date)"
-          ENDSSH
+          sleep 6
+          curl -sf https://${DOMAIN}/api/health && echo " Site OK" || echo " Health check failed"
+          echo "Deploy completado: $(date)"
+          SCRIPT
+
+          scp -i ~/.ssh/deploy_key -P 22022 -o StrictHostKeyChecking=no /tmp/deploy_metawz.sh root@129.121.56.29:/tmp/deploy_metawz.sh
+          ssh -i ~/.ssh/deploy_key -p 22022 -o StrictHostKeyChecking=no root@129.121.56.29 "chmod +x /tmp/deploy_metawz.sh && bash /tmp/deploy_metawz.sh"
