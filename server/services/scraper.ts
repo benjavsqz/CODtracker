@@ -449,6 +449,25 @@ function normalizeKey(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
+// Try to find an image on wzmetaloadouts.com for weapons not in the top-15 JSON
+const imageCache = new Map<string, string | null>()
+
+async function resolveImageUrl(weaponName: string): Promise<string | null> {
+  if (imageCache.has(weaponName)) return imageCache.get(weaponName)!
+
+  const encoded = encodeURIComponent(weaponName)
+  const url = `${WZ_BASE}/weapons/gold/${encoded}.png`
+  try {
+    const resp = await axios.head(url, { headers: HEADERS, timeout: 5000, validateStatus: s => s < 500 })
+    const result = resp.status === 200 ? url : null
+    imageCache.set(weaponName, result)
+    return result
+  } catch {
+    imageCache.set(weaponName, null)
+    return null
+  }
+}
+
 // ── Persist weapons ────────────────────────────────────────────────────────
 
 async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Promise<void> {
@@ -631,6 +650,20 @@ export async function scrapeWeaponMeta(): Promise<void> {
   // Aggregate weapons from all sources
   const aggregated = aggregateWeapons(wzWeapons, codmunityRaw, codmunityChanges, newsChanges)
   console.log(`[scraper] Agregadas ${aggregated.length} armas (${aggregated.filter(w => w.sources_count >= 2).length} en 2+ fuentes)`)
+
+  // Resolve images for codmunity-only weapons (no image from wzmetaloadouts JSON)
+  const noImageWeapons = aggregated.filter(w => !w.image_url)
+  if (noImageWeapons.length > 0) {
+    console.log(`[scraper] Buscando imágenes para ${noImageWeapons.length} armas sin imagen...`)
+    await Promise.allSettled(
+      noImageWeapons.map(async w => {
+        const url = await resolveImageUrl(w.weapon_name)
+        if (url) w.image_url = url
+      })
+    )
+    const resolved = noImageWeapons.filter(w => w.image_url).length
+    console.log(`[scraper] Imágenes resueltas: ${resolved}/${noImageWeapons.length}`)
+  }
 
   // Tier distribution log
   const tierDist: Record<string, number> = { S: 0, A: 0, B: 0, C: 0 }
