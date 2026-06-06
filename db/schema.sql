@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS perk_meta (
   updated_at  TIMESTAMP DEFAULT NOW()
 );
 ALTER TABLE perk_meta ADD COLUMN IF NOT EXISTS image_url TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS perk_meta_name_unique ON perk_meta (perk_name);
 
 CREATE TABLE IF NOT EXISTS equipment_meta (
   id          SERIAL PRIMARY KEY,
