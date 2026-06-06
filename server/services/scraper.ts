@@ -68,10 +68,11 @@ interface NoticiaIndex {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Matches wzmetaloadouts.com getTier() exactly: S=#1-5, A=#6-15, B=#16-30, C=#31+
 function rankToTier(r: number): string {
   if (r <= 5)  return 'S'
-  if (r <= 10) return 'A'
-  if (r <= 14) return 'B'
+  if (r <= 15) return 'A'
+  if (r <= 30) return 'B'
   return 'C'
 }
 
