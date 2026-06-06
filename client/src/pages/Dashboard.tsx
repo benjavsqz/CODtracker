@@ -459,7 +459,7 @@ export default function Dashboard() {
     ? new Date(Math.max(...meta.map(w => w.updated_at ? new Date(w.updated_at).getTime() : 0)))
     : null
   const lastUpdatedStr = lastUpdated
-    ? lastUpdated.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? lastUpdated.toLocaleString('es-CL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : null
 
   const goSave = (w: WeaponMeta) => {
