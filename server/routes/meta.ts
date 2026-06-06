@@ -12,6 +12,8 @@ router.get('/', async (_req, res) => {
          change_type,
          CASE WHEN changed_at > NOW() - INTERVAL '21 days' THEN change_type ELSE NULL END AS recent_change,
          ranking, game_modes, tactical_cat,
+         COALESCE(sources_count, 1) AS sources_count,
+         COALESCE(tier_score, 0)    AS tier_score,
          updated_at
        FROM weapon_meta
        ORDER BY weapon_name, updated_at DESC`

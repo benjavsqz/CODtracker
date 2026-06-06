@@ -36,6 +36,8 @@ ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS change_type VARCHAR(10);
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS changed_at TIMESTAMP;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS max_level INTEGER DEFAULT 50;
 CREATE UNIQUE INDEX IF NOT EXISTS weapon_meta_name_unique ON weapon_meta (weapon_name);
+ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS sources_count  INTEGER DEFAULT 1;
+ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS tier_score     DECIMAL(4,2) DEFAULT 0;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS ranking       INTEGER;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS game_modes    TEXT[]   DEFAULT '{}';
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS tactical_cat  VARCHAR(100);

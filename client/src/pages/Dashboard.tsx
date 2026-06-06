@@ -21,6 +21,8 @@ interface WeaponMeta {
   ranking: number | null
   game_modes: string[] | null
   tactical_cat: string | null
+  sources_count: number | null
+  tier_score: number | null
   updated_at: string | null
 }
 
@@ -379,6 +381,20 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
             <span className={`text-[10px] font-semibold ${cfg.label}`}>{w.pick_rate}% pick rate</span>
           )}
         </div>
+        {/* Sources indicator */}
+        {(w.sources_count ?? 1) >= 1 && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex gap-0.5">
+              {[...Array(2)].map((_, i) => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < (w.sources_count ?? 1) ? 'bg-white/50' : 'bg-white/[0.08]'}`} />
+              ))}
+            </div>
+            <span className="text-[9px] text-white/25">
+              {w.sources_count ?? 1}/2 fuentes
+              {w.tier_score ? ` · score ${w.tier_score.toFixed(2)}` : ''}
+            </span>
+          </div>
+        )}
         {w.game_modes?.length ? (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {w.game_modes.map(m => (
@@ -598,9 +614,21 @@ export default function Dashboard() {
                         <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full border font-medium truncate ${CAT_COLOR[w.category] ?? ''}`}>
                           {w.category}
                         </span>
-                        {w.pick_rate > 0 && (
-                          <span className={`text-[9px] sm:text-[10px] font-medium shrink-0 ${cfg.label}`}>{w.pick_rate}%</span>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Source confirmation dots */}
+                          {(w.sources_count ?? 1) >= 2 && (
+                            <span title="Confirmado en 2+ fuentes" className="flex gap-0.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                            </span>
+                          )}
+                          {(w.sources_count ?? 1) === 1 && (
+                            <span title="1 fuente" className="flex gap-0.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-white/[0.07]" />
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {w.pick_rate > 0 && (
                         <div className="mt-2 h-px bg-white/[0.06] rounded-full overflow-hidden">
