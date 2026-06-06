@@ -35,6 +35,16 @@ const BuilderIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
   </svg>
 )
+const ClasesIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+  </svg>
+)
+const NoticiasIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+  </svg>
+)
 
 export default function Layout() {
   const { user, logout, isAuthenticated } = useAuth()
@@ -57,9 +67,11 @@ export default function Layout() {
             <img src="/logo-text.svg" alt="META WZ" className="h-5 sm:h-6 object-contain" />
             {/* Desktop nav */}
             <nav className="hidden sm:flex gap-1">
-              <NavLink to="/meta" className={topLink}>Meta</NavLink>
-              <NavLink to="/perks" className={topLink}>Ventajas</NavLink>
-              <NavLink to="/builder" className={topLink}>Builder</NavLink>
+              <NavLink to="/meta"     className={topLink}>Meta</NavLink>
+              <NavLink to="/clases"   className={topLink}>Clases</NavLink>
+              <NavLink to="/perks"    className={topLink}>Ventajas</NavLink>
+              <NavLink to="/noticias" className={topLink}>Noticias</NavLink>
+              <NavLink to="/builder"  className={topLink}>Builder</NavLink>
               {isAuthenticated && <NavLink to="/loadouts" className={topLink}>Mis Loadouts</NavLink>}
             </nav>
           </div>
@@ -103,24 +115,22 @@ export default function Layout() {
             <MetaIcon />
             <span>Meta</span>
           </NavLink>
+          <NavLink to="/clases" className={bottomLink}>
+            <ClasesIcon />
+            <span>Clases</span>
+          </NavLink>
           <NavLink to="/perks" className={bottomLink}>
             <PerksIcon />
             <span>Ventajas</span>
           </NavLink>
-          <NavLink to="/builder" className={bottomLink}>
-            <BuilderIcon />
-            <span>Builder</span>
+          <NavLink to="/noticias" className={bottomLink}>
+            <NoticiasIcon />
+            <span>Noticias</span>
           </NavLink>
           {isAuthenticated && (
             <NavLink to="/loadouts" className={bottomLink}>
               <LoadoutsIcon />
               <span>Loadouts</span>
-            </NavLink>
-          )}
-          {!isAuthenticated && (
-            <NavLink to="/register" className={bottomLink}>
-              <LoadoutsIcon />
-              <span>Registro</span>
             </NavLink>
           )}
         </div>

@@ -36,6 +36,9 @@ ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS change_type VARCHAR(10);
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS changed_at TIMESTAMP;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS max_level INTEGER DEFAULT 50;
 CREATE UNIQUE INDEX IF NOT EXISTS weapon_meta_name_unique ON weapon_meta (weapon_name);
+ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS ranking       INTEGER;
+ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS game_modes    TEXT[]   DEFAULT '{}';
+ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS tactical_cat  VARCHAR(100);
 
 CREATE TABLE IF NOT EXISTS perk_meta (
   id          SERIAL PRIMARY KEY,
@@ -67,3 +70,33 @@ ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk1                 VARCHAR(100)
 ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk2                 VARCHAR(100);
 ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS perk3                 VARCHAR(100);
 ALTER TABLE loadouts ADD COLUMN IF NOT EXISTS melee                 VARCHAR(100);
+
+CREATE TABLE IF NOT EXISTS meta_noticias (
+  id          SERIAL PRIMARY KEY,
+  slug        VARCHAR(300) UNIQUE NOT NULL,
+  titulo      VARCHAR(400),
+  resumen     TEXT,
+  imagen_url  TEXT,
+  categoria   VARCHAR(50),
+  fecha       TIMESTAMP,
+  contenido   TEXT,
+  destacada   BOOLEAN DEFAULT false,
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS meta_clases (
+  id                     SERIAL PRIMARY KEY,
+  nombre                 VARCHAR(100) NOT NULL,
+  estilo                 VARCHAR(100),
+  descripcion            TEXT,
+  dificultad             VARCHAR(50),
+  modos                  TEXT[]  DEFAULT '{}',
+  color                  VARCHAR(20),
+  primaria_arma          VARCHAR(100),
+  primaria_attachments   JSONB   DEFAULT '{}',
+  secundaria_arma        VARCHAR(100),
+  secundaria_attachments JSONB   DEFAULT '{}',
+  stats                  JSONB   DEFAULT '{}',
+  updated_at             TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS meta_clases_nombre_unique ON meta_clases (nombre);

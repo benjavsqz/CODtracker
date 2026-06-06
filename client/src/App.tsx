@@ -8,6 +8,8 @@ import Register from './pages/Register'
 import Share from './pages/Share'
 import Perks from './pages/Perks'
 import LoadoutBuilder from './pages/LoadoutBuilder'
+import Noticias from './pages/Noticias'
+import Clases from './pages/Clases'
 
 export default function App() {
   return (
@@ -16,11 +18,13 @@ export default function App() {
         <Route path="/share/:slug" element={<Share />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/meta" replace />} />
-          <Route path="meta" element={<Dashboard />} />
-          <Route path="perks" element={<Perks />} />
-          <Route path="builder" element={<LoadoutBuilder />} />
+          <Route path="meta"     element={<Dashboard />} />
+          <Route path="perks"    element={<Perks />} />
+          <Route path="clases"   element={<Clases />} />
+          <Route path="noticias" element={<Noticias />} />
+          <Route path="builder"  element={<LoadoutBuilder />} />
           <Route path="loadouts" element={<Loadouts />} />
-          <Route path="login" element={<Login />} />
+          <Route path="login"    element={<Login />} />
           <Route path="register" element={<Register />} />
         </Route>
       </Routes>

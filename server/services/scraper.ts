@@ -1,5 +1,6 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
+import vm from 'vm'
 import { query } from './db'
 
 const HEADERS = {
@@ -8,219 +9,391 @@ const HEADERS = {
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
-const TIER_RANK: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 }
+const BASE = 'https://wzmetaloadouts.com'
 
-interface ScrapedWeapon {
-  weapon_name: string
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface WZWeapon {
+  ranking: number
+  arma: string
+  imagen_url: string
+  categoria_tactica: string
+  tipo_arma: string
+  pick_rate: string | number
+  es_nuevo: boolean
+  es_buff: boolean
+  es_nerfeada: boolean
+  modos: string[]
+  attachments: Array<{ slot: string; item: string; nivel: string }>
+  codigo: string
+  timestamp?: string
+}
+
+interface VentajaItem {
+  nombre: string
+  nombre_en: string
+  slot: string
+  icon: string
   tier: string
-  category: string
+  uso: string
+  descripcion: string
+}
+
+interface ClaseItem {
+  id: number
+  estilo: string
+  nombre: string
+  icono: string
+  dificultad: string
+  modos: string[]
+  descripcion: string
+  primaria: { arma: string; attachments: Array<{ slot: string; item: string }> }
+  secundaria: { arma: string; attachments: Array<{ slot: string; item: string }> }
+  stats: Record<string, number>
+  color: string
+}
+
+interface NoticiaIndex {
   slug: string
-}
-
-interface WeaponChange {
-  weapon_name: string
-  change_type: 'buff' | 'nerf' | 'new' | null
-  changed_at: Date | null
-}
-
-// ── Step 1: Tier list ──────────────────────────────────────────────────────
-// codmunity.gg Angular SSR: sections by class gold/silver/bronze/ng-star-inserted
-async function fetchTierList(): Promise<ScrapedWeapon[]> {
-  const { data: html } = await axios.get('https://codmunity.gg/tier-list/warzone', {
-    headers: HEADERS, timeout: 15000,
-  })
-  const $ = cheerio.load(html)
-  const weapons: ScrapedWeapon[] = []
-  const seen = new Set<string>()
-
-  const classTierMap: Record<string, string> = { gold: 'S', silver: 'A', bronze: 'B' }
-
-  $('[class*="tier-list-section"]').each((_i, section) => {
-    const classList = $(section).attr('class') ?? ''
-    if (classList.includes('tier-list-section-item') ||
-        classList.includes('tier-list-section-title') ||
-        classList.includes('tier-list-section-items')) return
-
-    let tier = 'C'
-    for (const [cls, t] of Object.entries(classTierMap)) {
-      if (classList.includes(cls)) { tier = t; break }
-    }
-
-    $(section).find('[class*="tier-list-section-item-title"]').each((_j, el) => {
-      const name = $(el).text().trim()
-      if (!name || name.length < 2 || name.length > 60 || seen.has(name)) return
-      seen.add(name)
-
-      const subtitle = $(el)
-        .closest('[class*="tier-list-section-item-texts"]')
-        .find('[class*="tier-list-section-item-subtitle"]')
-        .first().text().trim()
-
-      // Get slug from parent anchor href
-      const href = $(el).closest('a').attr('href') ?? ''
-      const slug = href.replace('/weapon/bo7/', '')
-
-      weapons.push({ weapon_name: name, tier, category: subtitle || guessCategory(name), slug })
-    })
-  })
-
-  return weapons
-}
-
-// ── Step 2: Per-weapon change history ─────────────────────────────────────
-const MONTHS: Record<string, number> = {
-  Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
-  Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11,
-}
-
-function parseCodmunityDate(str: string): Date | null {
-  // Format: "Jun 3, 2026"
-  const m = str.match(/(\w{3})\s+(\d+),\s+(\d{4})/)
-  if (!m) return null
-  const month = MONTHS[m[1]]
-  if (month === undefined) return null
-  return new Date(Number(m[3]), month, Number(m[2]))
-}
-
-async function fetchWeaponChange(slug: string, weaponName: string): Promise<WeaponChange> {
-  try {
-    const { data: html } = await axios.get(`https://codmunity.gg/weapon/bo7/${slug}`, {
-      headers: HEADERS, timeout: 10000,
-    })
-    const $ = cheerio.load(html)
-
-    // Get balancing dates and tags in order
-    const dateEls: string[] = []
-    const tagEls:  string[] = []
-
-    $('[class*="balancing-date"], [class*="balancing-container"]').each((_i, el) => {
-      const text = $(el).text().trim()
-      if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+,\s+\d{4}/.test(text)) {
-        dateEls.push(text.split('\n')[0].trim())
-      }
-    })
-
-    $('[class*="balancing-tag"]').each((_i, el) => {
-      const tag = $(el).text().trim()
-      if (/^(buff|nerf|new)$/i.test(tag)) tagEls.push(tag.toLowerCase())
-    })
-
-    // If tag-only extraction didn't get dates, try regex on raw HTML
-    if (dateEls.length === 0) {
-      const dates = html.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+,\s+\d{4}/g) ?? []
-      dateEls.push(...dates)
-    }
-
-    if (tagEls.length === 0 || dateEls.length === 0) {
-      return { weapon_name: weaponName, change_type: null, changed_at: null }
-    }
-
-    const latestDate = parseCodmunityDate(dateEls[0])
-    const latestTag  = tagEls[0] as 'buff' | 'nerf' | 'new'
-
-    return { weapon_name: weaponName, change_type: latestTag, changed_at: latestDate }
-  } catch {
-    return { weapon_name: weaponName, change_type: null, changed_at: null }
-  }
-}
-
-// Fetch weapon changes in batches to avoid overwhelming the server
-async function fetchAllChanges(weapons: ScrapedWeapon[]): Promise<Map<string, WeaponChange>> {
-  const BATCH = 5
-  const results = new Map<string, WeaponChange>()
-  for (let i = 0; i < weapons.length; i += BATCH) {
-    const batch = weapons.slice(i, i + BATCH)
-    const res = await Promise.all(batch.map(w => fetchWeaponChange(w.slug, w.weapon_name)))
-    res.forEach(r => results.set(r.weapon_name, r))
-    if (i + BATCH < weapons.length) await new Promise(r => setTimeout(r, 500))
-  }
-  return results
+  url: string
+  titulo: string
+  resumen: string
+  imagen: string
+  categoria: string
+  destacada: boolean
+  tags: string[]
+  date: string
+  fecha_legible: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function guessCategory(name: string): string {
-  const n = name.toLowerCase()
-  if (/strider|hawker|vs.recon|mors|xr.3|longbow|kar98|mk35 isr/i.test(n)) return 'Sniper Rifle'
-  if (/swordfish|warden|svk|dm56|mtz.intercept|svt/i.test(n)) return 'Marksman Rifle'
-  if (/mk\.78|sokol|xm325|pulemyot|rapp|dg.58|rev-46/i.test(n)) return 'LMG'
-  if (/voyak|ds20|egrt|mxr|peacekeeper|ak.?27|maddox|m15|x9.mav|ram.?7|mcw|holger|bp50|kastov|carbon|vst/i.test(n)) return 'Assault Rifle'
-  if (/1911|pistol|velox|handgun/i.test(n)) return 'Handgun'
-  if (/m10|breacher|echo|shotgun|ravager/i.test(n)) return 'Shotgun'
-  return 'SMG'
+
+function rankToTier(r: number): string {
+  if (r <= 3)  return 'S'
+  if (r <= 8)  return 'A'
+  if (r <= 13) return 'B'
+  return 'C'
 }
 
-// ── Main scrape ────────────────────────────────────────────────────────────
-export async function scrapeWeaponMeta(): Promise<void> {
-  console.log('[scraper] Obteniendo tier list de codmunity.gg...')
+function translateCategory(tipo: string): string {
+  const map: Record<string, string> = {
+    'Fusil de asalto':   'Assault Rifle',
+    'Subfusil':          'SMG',
+    'Ametralladora ligera': 'LMG',
+    'Fusil de precisión': 'Sniper Rifle',
+    'Fusil de tirador':  'Marksman Rifle',
+    'Fusil de batalla':  'Battle Rifle',
+    'Escopeta':          'Shotgun',
+    'Pistola':           'Handgun',
+  }
+  return map[tipo] ?? tipo ?? 'Assault Rifle'
+}
 
-  let weapons: ScrapedWeapon[] = []
+function translateSlot(slot: string): string {
+  const map: Record<string, string> = {
+    'Boca de Cañón': 'Muzzle', 'Bocacha': 'Muzzle',
+    'Cañón': 'Barrel',
+    'Óptica': 'Optic',
+    'Culata': 'Stock',
+    'Acople inferior': 'Underbarrel',
+    'Cargador': 'Magazine',
+    'Munición': 'Ammunition',
+    'Empuñadura trasera': 'Rear Grip', 'Empuñadura': 'Rear Grip',
+    'Láser': 'Laser',
+    'Mod. de disparo': 'Fire Mods',
+  }
+  return map[slot] ?? slot
+}
+
+// Safely evaluate a JS file that declares a top-level variable
+function evalJSVar(js: string, varName: string): unknown {
+  const safe = js.replace(new RegExp(`^\\s*const\\s+${varName}\\s*=`), `var ${varName} =`)
+  const sandbox: Record<string, unknown> = {}
   try {
-    weapons = await fetchTierList()
-    console.log(`[scraper] ${weapons.length} armas en tier list`)
-  } catch (err: any) {
-    console.warn(`[scraper] Tier list falló: ${err.message}`)
+    vm.createContext(sandbox)
+    vm.runInContext(safe, sandbox, { timeout: 3000 })
+    return sandbox[varName]
+  } catch {
+    return undefined
   }
+}
 
-  if (weapons.length < 5) {
-    console.warn('[scraper] Datos insuficientes — meta sin cambios')
-    return
+// ── Source 1: meta_warzone.json ────────────────────────────────────────────
+
+async function fetchWeapons(): Promise<WZWeapon[]> {
+  const { data } = await axios.get<WZWeapon[]>(`${BASE}/meta_warzone.json`, {
+    headers: HEADERS, timeout: 10000,
+  })
+  return Array.isArray(data) ? data : []
+}
+
+// ── Source 2: ventajas.js ──────────────────────────────────────────────────
+
+async function fetchVentajas(): Promise<VentajaItem[]> {
+  const { data: js } = await axios.get<string>(`${BASE}/ventajas.js`, {
+    headers: HEADERS, timeout: 10000, responseType: 'text',
+  })
+  const result = evalJSVar(js, 'VENTAJAS')
+  return Array.isArray(result) ? result as VentajaItem[] : []
+}
+
+// ── Source 3: clases.js ────────────────────────────────────────────────────
+
+async function fetchClases(): Promise<ClaseItem[]> {
+  const { data: js } = await axios.get<string>(`${BASE}/clases.js`, {
+    headers: HEADERS, timeout: 10000, responseType: 'text',
+  })
+  const result = evalJSVar(js, 'CLASES')
+  return Array.isArray(result) ? result as ClaseItem[] : []
+}
+
+// ── Source 4: noticias-index.json + articles ───────────────────────────────
+
+async function fetchNoticias(): Promise<NoticiaIndex[]> {
+  const { data } = await axios.get<NoticiaIndex[]>(`${BASE}/noticias-index.json`, {
+    headers: HEADERS, timeout: 10000,
+  })
+  return Array.isArray(data) ? data : []
+}
+
+async function fetchArticleContent(url: string): Promise<string> {
+  try {
+    const { data: html } = await axios.get(`${BASE}${url}`, {
+      headers: HEADERS, timeout: 12000,
+    })
+    const $ = cheerio.load(html)
+    return $('.noticia-cuerpo').text().trim().slice(0, 8000)
+  } catch {
+    return ''
   }
+}
 
-  console.log('[scraper] Obteniendo historial buff/nerf de páginas individuales...')
-  const changeMap = await fetchAllChanges(weapons)
-  console.log(`[scraper] Cambios obtenidos para ${changeMap.size} armas`)
+// Extract weapon buff/nerf mentions from article text
+function extractWeaponChanges(text: string): Map<string, 'buff' | 'nerf'> {
+  const changes = new Map<string, 'buff' | 'nerf'>()
+  const buffKeywords  = /buffead|mejorad|potenciad|aumentad|increment|fortalecid|subid/i
+  const nerfKeywords  = /nerfeada|nerfeado|reducid|debilitad|bajad|empeorad|disminuid/i
 
-  // Get current DB state
+  // Look for sentences mentioning weapons near buff/nerf words
+  const sentences = text.split(/[.\n]/)
+  for (const sent of sentences) {
+    const type = buffKeywords.test(sent) ? 'buff' : nerfKeywords.test(sent) ? 'nerf' : null
+    if (!type) continue
+    // Extract weapon names (capitalized words 3-30 chars, may have numbers/spaces)
+    const words = sent.match(/[A-Z][A-Za-z0-9\- ]{2,29}(?=\s|$)/g) ?? []
+    for (const w of words) {
+      const name = w.trim()
+      if (name.length >= 3 && !changes.has(name)) changes.set(name, type)
+    }
+  }
+  return changes
+}
+
+// ── Persist: weapons ───────────────────────────────────────────────────────
+
+async function saveWeapons(
+  weapons: WZWeapon[],
+  newsChanges: Map<string, 'buff' | 'nerf'>,
+): Promise<void> {
   const existing = await query('SELECT weapon_name, tier FROM weapon_meta')
   const currentMap = new Map(existing.rows.map((r: any) => [r.weapon_name.toLowerCase(), r.tier]))
 
-  const RECENT_DAYS = 14
+  const TIER_RANK: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 }
 
-  let updated = 0
   for (const w of weapons) {
-    const key    = w.weapon_name.toLowerCase()
-    const oldTier = currentMap.get(key)
-    const change  = changeMap.get(w.weapon_name)
-    const category = w.category || guessCategory(w.weapon_name)
+    const tier      = rankToTier(w.ranking)
+    const category  = translateCategory(w.tipo_arma)
+    const imageUrl  = `${BASE}${w.imagen_url.startsWith('/') ? '' : '/'}${w.imagen_url}`
+    const oldTier   = currentMap.get(w.arma.toLowerCase())
 
-    // Determine change_type: prefer direct page data, fallback to tier comparison
-    let changeType: string | null = null
-    let changedAt: Date | null = null
-
-    if (change?.change_type && change.changed_at) {
-      const ageMs = Date.now() - change.changed_at.getTime()
-      const ageDays = ageMs / (1000 * 60 * 60 * 24)
-      if (ageDays <= RECENT_DAYS) {
-        changeType = change.change_type
-        changedAt  = change.changed_at
+    // Build meta_build map
+    let metaBuild: Record<string, string> | null = null
+    if (w.attachments?.length) {
+      metaBuild = {}
+      for (const att of w.attachments) {
+        metaBuild[translateSlot(att.slot)] = att.item
       }
-    } else if (oldTier) {
-      // Fallback: detect tier shift
-      const o = TIER_RANK[oldTier?.toUpperCase()] ?? 0
-      const n = TIER_RANK[w.tier?.toUpperCase()] ?? 0
-      if (n > o)      { changeType = 'buff';  changedAt = new Date() }
-      else if (n < o) { changeType = 'nerf';  changedAt = new Date() }
     }
 
-    if (oldTier) {
+    // Determine change_type — direct flags first, then news, then tier shift
+    let changeType: string | null = null
+    let changedAt: Date | null = null
+    const now = new Date()
+
+    if (w.es_buff)      { changeType = 'buff'; changedAt = now }
+    else if (w.es_nerfeada) { changeType = 'nerf'; changedAt = now }
+    else if (w.es_nuevo)    { changeType = 'new';  changedAt = now }
+
+    if (!changeType) {
+      const newsHit = newsChanges.get(w.arma)
+      if (newsHit) { changeType = newsHit; changedAt = now }
+    }
+
+    if (!changeType && oldTier) {
+      const o = TIER_RANK[oldTier?.toUpperCase()] ?? 0
+      const n = TIER_RANK[tier.toUpperCase()] ?? 0
+      if (n > o)      { changeType = 'buff'; changedAt = now }
+      else if (n < o) { changeType = 'nerf'; changedAt = now }
+    }
+
+    const buildParam = metaBuild ? JSON.stringify(metaBuild) : null
+    const gameModes  = w.modos ?? []
+    const tactCat    = w.categoria_tactica ?? null
+
+    if (oldTier !== undefined) {
       await query(
         `UPDATE weapon_meta
-         SET tier=$1, category=$2, updated_at=NOW(),
-             change_type=$3::varchar,
-             changed_at=CASE WHEN $3::varchar IS NOT NULL THEN $4 ELSE changed_at END
-         WHERE LOWER(weapon_name)=$5`,
-        [w.tier, category, changeType, changedAt, key]
+         SET tier=$1, category=$2, updated_at=NOW(), image_url=$3,
+             change_type=$4::varchar,
+             changed_at=CASE WHEN $4::varchar IS NOT NULL THEN $5 ELSE changed_at END,
+             ranking=$6, game_modes=$7, tactical_cat=$8
+             ${buildParam ? ', meta_build=$9' : ''}
+         WHERE LOWER(weapon_name)=${buildParam ? '$10' : '$9'}`,
+        buildParam
+          ? [tier, category, imageUrl, changeType, changedAt, w.ranking, gameModes, tactCat, buildParam, w.arma.toLowerCase()]
+          : [tier, category, imageUrl, changeType, changedAt, w.ranking, gameModes, tactCat, w.arma.toLowerCase()],
       )
     } else {
       await query(
-        `INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, change_type, changed_at)
-         VALUES ($1,$2,$3,0,$4::varchar,$5)
+        `INSERT INTO weapon_meta (weapon_name, tier, category, pick_rate, image_url, change_type, changed_at, ranking, game_modes, tactical_cat, meta_build)
+         VALUES ($1,$2,$3,0,$4,$5::varchar,$6,$7,$8,$9,$10)
          ON CONFLICT (weapon_name) DO NOTHING`,
-        [w.weapon_name, w.tier, category, changeType, changedAt]
+        [w.arma, tier, category, imageUrl, changeType, changedAt, w.ranking, gameModes, tactCat, buildParam ? JSON.parse(buildParam) : {}],
       )
     }
-    if (changeType) updated++
+  }
+}
+
+// ── Persist: perks ─────────────────────────────────────────────────────────
+
+async function savePerks(ventajas: VentajaItem[]): Promise<void> {
+  for (const v of ventajas) {
+    const cat      = v.slot   // "PERK 1" / "PERK 2" / "PERK 3"
+    const category = cat.replace('PERK ', 'Perk ')
+    const iconUrl  = `${BASE}/${v.icon}`
+
+    await query(
+      `INSERT INTO perk_meta (perk_name, category, tier, description, image_url, updated_at)
+       VALUES ($1,$2,$3,$4,$5,NOW())
+       ON CONFLICT (perk_name) DO UPDATE
+         SET category=$2, tier=$3, description=$4, image_url=$5, updated_at=NOW()`,
+      [v.nombre_en || v.nombre, category, v.tier, v.descripcion, iconUrl],
+    )
+  }
+}
+
+// ── Persist: clases ────────────────────────────────────────────────────────
+
+async function saveClases(clases: ClaseItem[]): Promise<void> {
+  for (const c of clases) {
+    const primAtt  = Object.fromEntries(
+      (c.primaria?.attachments ?? []).map(a => [translateSlot(a.slot), a.item]),
+    )
+    const secAtt   = Object.fromEntries(
+      (c.secundaria?.attachments ?? []).map(a => [translateSlot(a.slot), a.item]),
+    )
+
+    await query(
+      `INSERT INTO meta_clases
+         (nombre, estilo, descripcion, dificultad, modos, color,
+          primaria_arma, primaria_attachments, secundaria_arma, secundaria_attachments, stats, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+       ON CONFLICT (nombre) DO UPDATE
+         SET estilo=$2, descripcion=$3, dificultad=$4, modos=$5, color=$6,
+             primaria_arma=$7, primaria_attachments=$8,
+             secundaria_arma=$9, secundaria_attachments=$10,
+             stats=$11, updated_at=NOW()`,
+      [
+        c.nombre, c.estilo, c.descripcion, c.dificultad,
+        c.modos ?? [], c.color ?? null,
+        c.primaria?.arma ?? null, primAtt,
+        c.secundaria?.arma ?? null, secAtt,
+        c.stats ?? {},
+      ],
+    )
+  }
+}
+
+// ── Persist: noticias ──────────────────────────────────────────────────────
+
+async function saveNoticias(
+  list: NoticiaIndex[],
+  contentMap: Map<string, string>,
+): Promise<void> {
+  for (const n of list) {
+    const fecha   = n.date ? new Date(n.date) : null
+    const imgUrl  = n.imagen ? `${BASE}${n.imagen.startsWith('/') ? '' : '/'}${n.imagen}` : null
+    const content = contentMap.get(n.slug) ?? ''
+
+    await query(
+      `INSERT INTO meta_noticias (slug, titulo, resumen, imagen_url, categoria, fecha, contenido, destacada, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+       ON CONFLICT (slug) DO UPDATE
+         SET titulo=$2, resumen=$3, imagen_url=$4, categoria=$5,
+             fecha=$6, contenido=$7, destacada=$8, updated_at=NOW()`,
+      [n.slug, n.titulo, n.resumen, imgUrl, n.categoria, fecha, content, n.destacada ?? false],
+    )
+  }
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────
+
+export async function scrapeWeaponMeta(): Promise<void> {
+  console.log('[scraper] Iniciando scrape desde wzmetaloadouts.com...')
+
+  // Fetch all sources concurrently
+  const [weaponsRes, ventajasRes, clasesRes, noticiasRes] = await Promise.allSettled([
+    fetchWeapons(),
+    fetchVentajas(),
+    fetchClases(),
+    fetchNoticias(),
+  ])
+
+  const weapons  = weaponsRes.status  === 'fulfilled' ? weaponsRes.value  : []
+  const ventajas = ventajasRes.status === 'fulfilled' ? ventajasRes.value : []
+  const clases   = clasesRes.status   === 'fulfilled' ? clasesRes.value   : []
+  const noticias = noticiasRes.status === 'fulfilled' ? noticiasRes.value : []
+
+  if (weaponsRes.status  === 'rejected') console.warn('[scraper] meta_warzone.json falló:', (weaponsRes.reason as Error).message)
+  if (ventajasRes.status === 'rejected') console.warn('[scraper] ventajas.js falló:', (ventajasRes.reason as Error).message)
+  if (clasesRes.status   === 'rejected') console.warn('[scraper] clases.js falló:', (clasesRes.reason as Error).message)
+  if (noticiasRes.status === 'rejected') console.warn('[scraper] noticias-index.json falló:', (noticiasRes.reason as Error).message)
+
+  console.log(`[scraper] weapons:${weapons.length} ventajas:${ventajas.length} clases:${clases.length} noticias:${noticias.length}`)
+
+  if (weapons.length === 0) {
+    console.warn('[scraper] Sin armas — abortando')
+    return
   }
 
-  console.log(`[scraper] Completado: ${updated} armas con cambios recientes, ${weapons.length} total`)
+  // Fetch article content (up to 5 most recent, in parallel batches of 2)
+  const newsChanges = new Map<string, 'buff' | 'nerf'>()
+  const contentMap  = new Map<string, string>()
+
+  const recent = noticias.slice(0, 5)
+  for (let i = 0; i < recent.length; i += 2) {
+    const batch = recent.slice(i, i + 2)
+    const results = await Promise.allSettled(
+      batch.map(n => fetchArticleContent(n.url).then(txt => ({ slug: n.slug, txt }))),
+    )
+    for (const r of results) {
+      if (r.status === 'rejected') continue
+      const { slug, txt } = r.value
+      contentMap.set(slug, txt)
+      for (const [name, type] of extractWeaponChanges(txt)) {
+        if (!newsChanges.has(name)) newsChanges.set(name, type)
+      }
+    }
+    if (i + 2 < recent.length) await new Promise(r => setTimeout(r, 400))
+  }
+
+  console.log(`[scraper] ${newsChanges.size} cambios adicionales detectados en noticias`)
+
+  // Persist all
+  await saveWeapons(weapons, newsChanges)
+  if (ventajas.length) await savePerks(ventajas)
+  if (clases.length)   await saveClases(clases)
+  if (noticias.length) await saveNoticias(noticias, contentMap)
+
+  console.log(`[scraper] Completado — ${weapons.length} armas, ${ventajas.length} ventajas, ${clases.length} clases, ${noticias.length} noticias`)
 }

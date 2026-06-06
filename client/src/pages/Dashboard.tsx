@@ -18,10 +18,21 @@ interface WeaponMeta {
   image_url: string | null
   recent_change: 'buff' | 'nerf' | 'new' | null
   max_level: number | null
+  ranking: number | null
+  game_modes: string[] | null
+  tactical_cat: string | null
   updated_at: string | null
 }
 
 const TIERS = ['S', 'A', 'B', 'C'] as const
+
+const GAME_MODES: Record<string, string> = {
+  all:              'Todos',
+  battle_royale:    'Battle Royale',
+  resurgence:       'Resurgence',
+  black_ops_royale: 'BO Royale',
+  clasificatorio:   'Clasificatorio',
+}
 
 const TIER_CFG: Record<string, {
   badge: string; label: string; cssClass: string
@@ -349,15 +360,34 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
 
       {/* ─ Weapon name + meta info ─ */}
       <div className="px-4 pt-2.5 pb-2 border-b border-white/[0.06] shrink-0">
-        <h2 className="text-base font-black text-white leading-tight tracking-tight">{w.weapon_name}</h2>
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-base font-black text-white leading-tight tracking-tight">{w.weapon_name}</h2>
+          {w.ranking != null && (
+            <span className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/40">
+              #{w.ranking}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium ${CAT_COLOR[w.category] ?? ''}`}>
             {w.category}
           </span>
+          {w.tactical_cat && (
+            <span className="text-[9px] text-white/30 font-medium">{w.tactical_cat}</span>
+          )}
           {w.pick_rate > 0 && (
             <span className={`text-[10px] font-semibold ${cfg.label}`}>{w.pick_rate}% pick rate</span>
           )}
         </div>
+        {w.game_modes?.length ? (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {w.game_modes.map(m => (
+              <span key={m} className="text-[8px] px-1.5 py-0.5 rounded bg-white/[0.05] text-white/25 font-medium capitalize">
+                {GAME_MODES[m] ?? m}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {/* ─ Level slider ─ */}
@@ -394,6 +424,7 @@ export default function Dashboard() {
   const [meta, setMeta]               = useState<WeaponMeta[]>([])
   const [loading, setLoading]         = useState(true)
   const [activeClass, setActiveClass] = useState('Todas')
+  const [activeMode, setActiveMode]   = useState('all')
   const [selected, setSelected]       = useState<WeaponMeta | null>(null)
   const tabsRef                       = useRef<HTMLDivElement>(null)
   const { isAuthenticated }           = useAuth()
@@ -414,8 +445,15 @@ export default function Dashboard() {
   }, [selected])
 
   const classTabs = ['Todas', ...Object.keys(WEAPON_CLASSES)]
-  const filtered  = activeClass === 'Todas' ? meta : meta.filter(w => WEAPON_CLASSES[activeClass]?.includes(w.category))
-  const byTier    = (t: string) => filtered.filter(w => w.tier === t)
+
+  // First filter by game mode, then by class category
+  const byMode = activeMode === 'all'
+    ? meta
+    : meta.filter(w => !w.game_modes?.length || w.game_modes.includes(activeMode))
+  const filtered = activeClass === 'Todas'
+    ? byMode
+    : byMode.filter(w => WEAPON_CLASSES[activeClass]?.includes(w.category))
+  const byTier = (t: string) => filtered.filter(w => w.tier === t)
 
   const lastUpdated = meta.length
     ? new Date(Math.max(...meta.map(w => w.updated_at ? new Date(w.updated_at).getTime() : 0)))
@@ -457,7 +495,23 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      {/* Scrollable filter tabs */}
+      {/* Game mode filter */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.08 }}
+        className="flex gap-2 mb-3 overflow-x-auto scrollbar-none pb-1">
+        {Object.entries(GAME_MODES).map(([key, label]) => (
+          <motion.button key={key} whileTap={{ scale: 0.93 }}
+            onClick={() => setActiveMode(key)}
+            className={`shrink-0 px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-200 border ${
+              activeMode === key
+                ? 'text-red-300 bg-red-500/15 border-red-500/40'
+                : 'text-white/25 border-white/[0.05] hover:text-white/50 hover:border-white/10'
+            }`}>
+            {label}
+          </motion.button>
+        ))}
+      </motion.div>
+
+      {/* Category filter tabs */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
         ref={tabsRef}
         className="flex gap-2 mb-6 overflow-x-auto scrollbar-none pb-1">
@@ -524,6 +578,12 @@ export default function Dashboard() {
                       className={`glass rounded-2xl p-2.5 sm:p-3 cursor-pointer transition-all duration-200 ${cfg.cssClass} ${isSelected ? 'ring-1 ring-white/20' : ''}`}>
                       <div className="relative mb-2 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.03)' }}>
                         <WeaponImage src={w.image_url} name={w.weapon_name} />
+                        {/* Ranking badge — top left */}
+                        {w.ranking != null && (
+                          <span className="absolute top-1.5 left-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-md leading-none bg-black/60 text-white/60 backdrop-blur-sm">
+                            #{w.ranking}
+                          </span>
+                        )}
                         {w.recent_change && (
                           <span className={`animate-badge-pop absolute top-1.5 right-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none flex items-center gap-0.5 shadow-lg ${
                             w.recent_change === 'buff' ? 'bg-green-400 text-black' :
