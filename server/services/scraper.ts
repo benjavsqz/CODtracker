@@ -167,13 +167,16 @@ async function fetchWZMeta(): Promise<SourceWeapon[]> {
     else if (w.es_nerfeada) change_type = 'nerf'
     else if (w.es_nuevo)    change_type = 'new'
 
+    const rawPath = w.imagen_url.startsWith('/') ? w.imagen_url : `/${w.imagen_url}`
+    const encodedPath = rawPath.split('/').map(seg => encodeURIComponent(seg)).join('/')
+
     return {
       weapon_name:  w.arma,
       tier,
       tier_score:   TIER_VAL[tier],
       category:     translateCategory(w.tipo_arma),
       ranking:      w.ranking,
-      image_url:    `${WZ_BASE}${w.imagen_url.startsWith('/') ? '' : '/'}${w.imagen_url}`,
+      image_url:    `${WZ_BASE}${encodedPath}`,
       game_modes:   w.modos ?? [],
       tactical_cat: w.categoria_tactica ?? null,
       meta_build:   metaBuild,
