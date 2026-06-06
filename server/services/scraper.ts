@@ -15,10 +15,12 @@ const WZ_BASE = 'https://wzmetaloadouts.com'
 
 const TIER_VAL: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 }
 
+// S: both agree on S (4.0), OR one source S + other A (3.5) → stays S
+// A: both agree A (3.0), or mix of A/B
 function scoreToTier(score: number): string {
-  if (score >= 3.6) return 'S'
-  if (score >= 2.6) return 'A'
-  if (score >= 1.6) return 'B'
+  if (score >= 3.4) return 'S'
+  if (score >= 2.4) return 'A'
+  if (score >= 1.4) return 'B'
   return 'C'
 }
 
