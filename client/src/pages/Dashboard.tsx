@@ -391,8 +391,8 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
           {w.tactical_cat && (
             <span className="text-[9px] text-white/30 font-medium">{w.tactical_cat}</span>
           )}
-          {w.pick_rate > 0 && (
-            <span className={`text-[10px] font-semibold ${cfg.label}`}>{w.pick_rate}% pick rate</span>
+          {Number(w.pick_rate) > 0 && (
+            <span className={`text-[10px] font-semibold ${cfg.label}`}>{Number(w.pick_rate).toFixed(1)}% pick rate</span>
           )}
         </div>
         {/* Sources indicator */}
@@ -405,7 +405,7 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
             </div>
             <span className="text-[9px] text-white/25">
               {w.sources_count ?? 1}/2 fuentes
-              {w.tier_score ? ` · score ${w.tier_score.toFixed(2)}` : ''}
+              {w.tier_score ? ` · score ${Number(w.tier_score).toFixed(2)}` : ''}
             </span>
           </div>
         )}
