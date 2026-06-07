@@ -64,43 +64,54 @@ const WEAPON_CLASSES: Record<string, string[]> = {
   'Soporte':   ['LMG'],
 }
 
-// Normalize slot key: handles Spanish legacy keys still in DB
+// Normalize any slot key format → canonical Spanish name
 function normalizeSlot(slot: string): string {
-  const esMap: Record<string, string> = {
-    'Empuñadura Delantera': 'Underbarrel', 'Empuñadura delantera': 'Underbarrel',
-    'Empuñadura Trasera':   'Rear Grip',   'Empuñadura trasera':   'Rear Grip',
-    'Empuñadura':           'Rear Grip',
-    'Boca de Cañón': 'Muzzle', 'Bocacha': 'Muzzle',
-    'Cañón': 'Barrel', 'Óptica': 'Optic', 'Culata': 'Stock',
-    'Acople inferior': 'Underbarrel', 'Cargador': 'Magazine',
-    'Munición': 'Ammunition', 'Láser': 'Laser', 'Mod. de disparo': 'Fire Mods',
+  const map: Record<string, string> = {
+    // Current Spanish (wzstats — already canonical)
+    'Bocacha':              'Bocacha',
+    'Cañón':                'Cañón',
+    'Culata':               'Culata',
+    'Empuñadura Delantera': 'Empuñadura Delantera',
+    'Empuñadura Trasera':   'Empuñadura Trasera',
+    'Cargador':             'Cargador',
+    'Láser':                'Láser',
+    'Mira':                 'Mira',
+    'Mods de Disparo':      'Mods de Disparo',
+    'Munición':             'Munición',
+    // Legacy English keys (old DB data)
+    'Muzzle':               'Bocacha',
+    'Barrel':               'Cañón',
+    'Stock':                'Culata',
+    'Underbarrel':          'Empuñadura Delantera',
+    'Rear Grip':            'Empuñadura Trasera',
+    'Magazine':             'Cargador',
+    'Laser':                'Láser',
+    'Optic':                'Mira',
+    'Fire Mods':            'Mods de Disparo',
+    'Ammunition':           'Munición',
+    // Legacy Spanish variants
+    'Boca de Cañón':        'Bocacha',
+    'Óptica':               'Mira',
+    'Acople inferior':      'Empuñadura Delantera',
+    'Empuñadura delantera': 'Empuñadura Delantera',
+    'Empuñadura trasera':   'Empuñadura Trasera',
+    'Empuñadura':           'Empuñadura Trasera',
+    'Mod. de disparo':      'Mods de Disparo',
   }
-  return esMap[slot] ?? slot
+  return map[slot] ?? slot
 }
 
-const SLOT_ES: Record<string, string> = {
-  'Muzzle':      'Bocacha',
-  'Barrel':      'Cañón',
-  'Optic':       'Mira',
-  'Stock':       'Culata',
-  'Underbarrel': 'Acople',
-  'Magazine':    'Cargador',
-  'Ammunition':  'Munición',
-  'Rear Grip':   'Empuñadura',
-  'Laser':       'Láser',
-  'Fire Mods':   'Mod. Disparo',
-}
 const SLOT_CLR: Record<string, string> = {
-  'Muzzle':      'text-orange-400 bg-orange-500/10 border-orange-500/25',
-  'Barrel':      'text-sky-400 bg-sky-500/10 border-sky-500/25',
-  'Optic':       'text-teal-400 bg-teal-500/10 border-teal-500/25',
-  'Stock':       'text-purple-400 bg-purple-500/10 border-purple-500/25',
-  'Underbarrel': 'text-green-400 bg-green-500/10 border-green-500/25',
-  'Magazine':    'text-rose-400 bg-rose-500/10 border-rose-500/25',
-  'Ammunition':  'text-yellow-400 bg-yellow-500/10 border-yellow-500/25',
-  'Rear Grip':   'text-amber-400 bg-amber-500/10 border-amber-500/25',
-  'Laser':       'text-cyan-400 bg-cyan-500/10 border-cyan-500/25',
-  'Fire Mods':   'text-pink-400 bg-pink-500/10 border-pink-500/25',
+  'Bocacha':              'text-orange-400 bg-orange-500/10 border-orange-500/25',
+  'Cañón':                'text-sky-400 bg-sky-500/10 border-sky-500/25',
+  'Mira':                 'text-teal-400 bg-teal-500/10 border-teal-500/25',
+  'Culata':               'text-purple-400 bg-purple-500/10 border-purple-500/25',
+  'Empuñadura Delantera': 'text-green-400 bg-green-500/10 border-green-500/25',
+  'Cargador':             'text-rose-400 bg-rose-500/10 border-rose-500/25',
+  'Munición':             'text-yellow-400 bg-yellow-500/10 border-yellow-500/25',
+  'Empuñadura Trasera':   'text-amber-400 bg-amber-500/10 border-amber-500/25',
+  'Láser':                'text-cyan-400 bg-cyan-500/10 border-cyan-500/25',
+  'Mods de Disparo':      'text-pink-400 bg-pink-500/10 border-pink-500/25',
 }
 
 /* ── Animation variants ── */
@@ -195,9 +206,8 @@ function AttachmentCard({ slot, value, userLevel, index }: {
   const name  = attName(value)
   const reqLv = attLevel(value)
   const locked = reqLv !== null && userLevel < reqLv
-  const normalizedSlot = normalizeSlot(slot)
-  const slotLabel = SLOT_ES[normalizedSlot] ?? normalizedSlot
-  const slotColor = SLOT_CLR[normalizedSlot] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
+  const slotLabel = normalizeSlot(slot)
+  const slotColor = SLOT_CLR[slotLabel] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
 
   return (
     <motion.div
@@ -272,7 +282,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
       ? entries.map(([slot, v]) => {
           const lv = attLevel(v)
           const locked = lv !== null && userLevel < lv
-          return `${SLOT_ES[slot] ?? slot}: ${locked ? '[BLOQUEADO Nv.' + lv + '] ' : ''}${attName(v)}`
+          return `${normalizeSlot(slot)}: ${locked ? '[BLOQUEADO Nv.' + lv + '] ' : ''}${attName(v)}`
         }).join('\n')
       : '(Build meta próximamente)'
     navigator.clipboard.writeText(`${header}\n${body}`)

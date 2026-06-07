@@ -5,18 +5,18 @@ import { query } from './db'
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36',
-  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Language': 'es-ES,es;q=0.9',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
-const WZ_BASE = 'https://wzmetaloadouts.com'
+const WZ_STATS_BASE = 'https://wzstats.gg'
+const WZ_STATS_API  = 'https://app.wzstats.gg'
+const WZ_BASE       = 'https://wzmetaloadouts.com'  // still used for perks/clases/noticias
 
 // ── Tier numeric values ────────────────────────────────────────────────────
 
 const TIER_VAL: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 }
 
-// S: both agree on S (4.0), OR one source S + other A (3.5) → stays S
-// A: both agree A (3.0), or mix of A/B
 function scoreToTier(score: number): string {
   if (score >= 3.4) return 'S'
   if (score >= 2.4) return 'A'
@@ -28,8 +28,8 @@ function scoreToTier(score: number): string {
 
 interface SourceWeapon {
   weapon_name: string
-  tier: string           // S/A/B/C from this source
-  tier_score: number     // 1-4 numeric score
+  tier: string
+  tier_score: number
   category: string
   ranking?: number
   image_url?: string
@@ -38,23 +38,7 @@ interface SourceWeapon {
   meta_build?: Record<string, string>
   change_type?: 'buff' | 'nerf' | 'new' | null
   changed_at?: Date | null
-  source: string         // identifier of the source
-}
-
-interface WZWeapon {
-  ranking: number
-  arma: string
-  imagen_url: string
-  categoria_tactica: string
-  tipo_arma: string
-  pick_rate: string | number
-  es_nuevo: boolean
-  es_buff: boolean
-  es_nerfeada: boolean
-  modos: string[]
-  attachments: Array<{ slot: string; item: string; nivel: string }>
-  codigo: string
-  timestamp?: string
+  source: string
 }
 
 interface VentajaItem {
@@ -94,48 +78,62 @@ interface NoticiaIndex {
   fecha_legible: string
 }
 
+interface BORBuild {
+  tier: string
+  rank: number
+  attachments: Array<{ name: string; slot: string; uniqueId: string }>
+}
+
+interface WZStatsTierWeapon {
+  name: string
+  slug: string
+  tier: string
+  rank: number | null
+  category: string
+  change_type: 'buff' | 'nerf' | 'new' | null
+  image_url: string | null
+}
+
+// ── Slot key (BOR API, English) → Spanish canonical name ─────────────────
+
+const SLOT_ES_MAP: Record<string, string> = {
+  muzzle:      'Bocacha',
+  barrel:      'Cañón',
+  stock:       'Culata',
+  underbarrel: 'Empuñadura Delantera',
+  rearGrip:    'Empuñadura Trasera',
+  magazine:    'Cargador',
+  laser:       'Láser',
+  optic:       'Mira',
+  firemods:    'Mods de Disparo',
+}
+
+function slotToES(slot: string): string {
+  return SLOT_ES_MAP[slot] ?? slot
+}
+
 // ── Translation helpers ────────────────────────────────────────────────────
 
 function translateCategory(tipo: string): string {
   const map: Record<string, string> = {
-    'Fusil de asalto':    'Assault Rifle',
-    'Subfusil':           'SMG',
-    'Ametralladora ligera': 'LMG',
-    'Fusil de precisión': 'Sniper Rifle',
-    'Fusil de tirador':   'Marksman Rifle',
-    'Fusil de batalla':   'Battle Rifle',
-    'Escopeta':           'Shotgun',
-    'Pistola':            'Handgun',
+    'Fusil de asalto':        'Assault Rifle',
+    'Subfusil':               'SMG',
+    'Ametralladora ligera':   'LMG',
+    'Fusil de precisión':     'Sniper Rifle',
+    'Fusil de tirador':       'Marksman Rifle',
+    'Fusil de batalla':       'Battle Rifle',
+    'Escopeta':               'Shotgun',
+    'Pistola':                'Handgun',
+    'ASSAULT_RIFLE':          'Assault Rifle',
+    'SMG':                    'SMG',
+    'LMG':                    'LMG',
+    'SNIPER_RIFLE':           'Sniper Rifle',
+    'MARKSMAN_RIFLE':         'Marksman Rifle',
+    'BATTLE_RIFLE':           'Battle Rifle',
+    'SHOTGUN':                'Shotgun',
+    'PISTOL':                 'Handgun',
   }
   return map[tipo] ?? tipo ?? 'Assault Rifle'
-}
-
-function translateSlot(slot: string): string {
-  const map: Record<string, string> = {
-    'Boca de Cañón': 'Muzzle', 'Bocacha': 'Muzzle',
-    'Cañón': 'Barrel',
-    'Óptica': 'Optic',
-    'Culata': 'Stock',
-    'Acople inferior': 'Underbarrel',
-    'Empuñadura Delantera': 'Underbarrel',
-    'Empuñadura delantera': 'Underbarrel',
-    'Cargador': 'Magazine',
-    'Munición': 'Ammunition',
-    'Empuñadura Trasera': 'Rear Grip',
-    'Empuñadura trasera': 'Rear Grip',
-    'Empuñadura': 'Rear Grip',
-    'Láser': 'Laser',
-    'Mod. de disparo': 'Fire Mods',
-  }
-  return map[slot] ?? slot
-}
-
-// Matches wzmetaloadouts.com getTier() exactly: S=#1-5, A=#6-15, B=#16-30, C=#31+
-function rankToTier(r: number): string {
-  if (r <= 5)  return 'S'
-  if (r <= 15) return 'A'
-  if (r <= 30) return 'B'
-  return 'C'
 }
 
 function evalJSVar(js: string, varName: string): unknown {
@@ -151,47 +149,169 @@ function evalJSVar(js: string, varName: string): unknown {
   }
 }
 
-// ── Source 1: wzmetaloadouts.com ──────────────────────────────────────────
+// ── Source 1: wzstats.gg tier list (HTML scrape) ──────────────────────────
 
-async function fetchWZMeta(): Promise<SourceWeapon[]> {
-  const { data } = await axios.get<WZWeapon[]>(`${WZ_BASE}/meta_warzone.json`, {
-    headers: HEADERS, timeout: 10000,
+async function fetchWZStatsTierList(): Promise<WZStatsTierWeapon[]> {
+  const { data: html } = await axios.get(`${WZ_STATS_BASE}/es`, {
+    headers: HEADERS, timeout: 15000,
   })
-  if (!Array.isArray(data)) return []
 
-  return data.map(w => {
-    const tier = rankToTier(w.ranking)
-    const metaBuild: Record<string, string> = {}
-    for (const att of w.attachments ?? []) {
-      metaBuild[translateSlot(att.slot)] = att.item
+  const $ = cheerio.load(html)
+  const weapons: WZStatsTierWeapon[] = []
+  const seen = new Set<string>()
+
+  const tierClassMap: Record<string, string> = {
+    'tier-a': 'A', 'tier-b': 'B', 'tier-c': 'C', 'tier-d': 'D',
+  }
+
+  function extractFromOl($ol: ReturnType<typeof $>, tier: string) {
+    $ol.find('> li').each((_j: number, li: unknown) => {
+      const $li = $(li as cheerio.Element)
+      const href = $li.find('a[href*="best-loadouts"]').first().attr('href') ?? ''
+      const slug = href.replace(/^\/[a-z]{2}\/best-loadouts\//, '')
+      if (!slug || seen.has(slug)) return
+      seen.add(slug)
+
+      const name = $li.find('.loadout-content-name div').first().text().trim()
+      if (!name || name.length < 2) return
+
+      const rankStr = $li.find('.rank').first().text().replace('#', '').trim()
+      const rank = rankStr ? parseInt(rankStr, 10) || null : null
+
+      const changeTag = $li.find('.loadout-content-tag').first()
+      let change_type: 'buff' | 'nerf' | 'new' | null = null
+      const changeText = changeTag.text().trim().toLowerCase()
+      if (changeText === 'nerf') change_type = 'nerf'
+      else if (changeText === 'buff') change_type = 'buff'
+      else if (['new', 'nuevo', 'nueva'].includes(changeText)) change_type = 'new'
+
+      const category = $li.find('.loadout-tag').not('.category-position').first().text().trim()
+      const imgSrc = $li.find('img[src*="wzstats"]').first().attr('src') ?? null
+
+      weapons.push({ name, slug, tier, rank, category, change_type, image_url: imgSrc })
+    })
+  }
+
+  // Process A–D tiers via app-tier-header elements
+  $('app-tier-header').each((_i: number, header: unknown) => {
+    const tierDivCls = $(header as cheerio.Element).find('[class*="tier-"]').first().attr('class') ?? ''
+    let tier = 'C'
+    for (const [key, val] of Object.entries(tierClassMap)) {
+      if (tierDivCls.includes(key)) { tier = val; break }
     }
-
-    let change_type: 'buff' | 'nerf' | 'new' | null = null
-    if (w.es_buff)       change_type = 'buff'
-    else if (w.es_nerfeada) change_type = 'nerf'
-    else if (w.es_nuevo)    change_type = 'new'
-
-    const rawPath = w.imagen_url.startsWith('/') ? w.imagen_url : `/${w.imagen_url}`
-    const encodedPath = rawPath.split('/').map(seg => encodeURIComponent(seg)).join('/')
-
-    return {
-      weapon_name:  w.arma,
-      tier,
-      tier_score:   TIER_VAL[tier],
-      category:     translateCategory(w.tipo_arma),
-      ranking:      w.ranking,
-      image_url:    `${WZ_BASE}${encodedPath}`,
-      game_modes:   w.modos ?? [],
-      tactical_cat: w.categoria_tactica ?? null,
-      meta_build:   metaBuild,
-      change_type,
-      changed_at:   change_type ? new Date() : null,
-      source:       'wzmetaloadouts',
-    } as SourceWeapon
+    const $ol = $(header as cheerio.Element).next().find('ol').first()
+    if ($ol.length) extractFromOl($ol, tier)
   })
+
+  // Process S/META tier: remaining <li> items that have pre-loaded wzstats images
+  $('li').each((_i: number, li: unknown) => {
+    const $li = $(li as cheerio.Element)
+    const href = $li.find('a[href*="best-loadouts"]').first().attr('href') ?? ''
+    const slug = href.replace(/^\/[a-z]{2}\/best-loadouts\//, '')
+    if (!slug || seen.has(slug)) return
+
+    const imgSrc = $li.find('img[src*="wzstats"]').first().attr('src')
+    if (!imgSrc) return // S tier has pre-loaded images; skip items without one
+
+    seen.add(slug)
+    const name = $li.find('.loadout-content-name div').first().text().trim()
+    if (!name || name.length < 2) return
+
+    const rankStr = $li.find('.rank').first().text().replace('#', '').trim()
+    const rank = rankStr ? parseInt(rankStr, 10) || null : null
+
+    const changeTag = $li.find('.loadout-content-tag').first()
+    let change_type: 'buff' | 'nerf' | 'new' | null = null
+    const changeText = changeTag.text().trim().toLowerCase()
+    if (changeText === 'nerf') change_type = 'nerf'
+    else if (changeText === 'buff') change_type = 'buff'
+    else if (['new', 'nuevo', 'nueva'].includes(changeText)) change_type = 'new'
+
+    const category = $li.find('.loadout-tag').not('.category-position').first().text().trim()
+    weapons.push({ name, slug, tier: 'S', rank, category, change_type, image_url: imgSrc })
+  })
+
+  return weapons
 }
 
-// ── Source 2: codmunity.gg tier list ──────────────────────────────────────
+// ── Source 1b: wzstats BOR builds API (Spanish names) ────────────────────
+
+async function fetchWZStatsBuild(slug: string): Promise<Record<string, string> | null> {
+  try {
+    const { data } = await axios.get<BORBuild[]>(
+      `${WZ_STATS_API}/v3/bor/builds/${slug}/?language=es`,
+      {
+        headers: { ...HEADERS, Referer: `${WZ_STATS_BASE}/es/best-loadouts/${slug}` },
+        timeout: 10000,
+      },
+    )
+    if (!Array.isArray(data) || !data.length) return null
+
+    // Pick best build: META tier first, then lowest rank
+    const sorted = [...data].sort((a, b) => {
+      const ts = (t: string) => (t === 'META' ? 0 : t === 'A' ? 1 : t === 'B' ? 2 : 3)
+      return ts(a.tier) - ts(b.tier) || (a.rank ?? 999) - (b.rank ?? 999)
+    })
+    const best = sorted[0]
+    if (!best?.attachments?.length) return null
+
+    const build: Record<string, string> = {}
+    for (const att of best.attachments.slice(0, 5)) {
+      if (att.name && att.slot) build[slotToES(att.slot)] = att.name
+    }
+    return Object.keys(build).length > 0 ? build : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchWZStats(): Promise<SourceWeapon[]> {
+  const listWeapons = await fetchWZStatsTierList()
+  console.log(
+    `[scraper] WZStats tier list: ${listWeapons.length} armas ` +
+    `(S:${listWeapons.filter(w => w.tier === 'S').length} ` +
+    `A:${listWeapons.filter(w => w.tier === 'A').length} ` +
+    `B:${listWeapons.filter(w => w.tier === 'B').length})`,
+  )
+
+  // Only fetch builds for S + A tier (quality builds worth showing)
+  const needBuilds = listWeapons.filter(w => w.tier === 'S' || w.tier === 'A')
+  const buildMap = new Map<string, Record<string, string>>()
+
+  const BATCH = 5
+  for (let i = 0; i < needBuilds.length; i += BATCH) {
+    const batch = needBuilds.slice(i, i + BATCH)
+    const results = await Promise.allSettled(
+      batch.map(w => fetchWZStatsBuild(w.slug).then(b => ({ slug: w.slug, build: b }))),
+    )
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value.build) {
+        buildMap.set(r.value.slug, r.value.build)
+      }
+    }
+    if (i + BATCH < needBuilds.length) await new Promise(r => setTimeout(r, 300))
+  }
+  console.log(`[scraper] WZStats builds: ${buildMap.size}/${needBuilds.length}`)
+
+  return listWeapons
+    .filter(w => w.tier !== 'D') // skip D-tier (clearly unviable)
+    .map(w => ({
+      weapon_name:  w.name,
+      tier:         w.tier,
+      tier_score:   TIER_VAL[w.tier] ?? 1,
+      category:     translateCategory(w.category),
+      ranking:      w.rank ?? undefined,
+      image_url:    w.image_url ?? undefined,
+      game_modes:   [],
+      tactical_cat: undefined,
+      meta_build:   buildMap.get(w.slug) ?? undefined,
+      change_type:  w.change_type,
+      changed_at:   w.change_type ? new Date() : null,
+      source:       'wzstats',
+    } as SourceWeapon))
+}
+
+// ── Source 2: codmunity.gg/es tier list ───────────────────────────────────
 
 interface CodmunityWeapon {
   weapon_name: string
@@ -201,34 +321,28 @@ interface CodmunityWeapon {
   image_url?: string
 }
 
-// Normalize a weapon name to a simple key for matching (remove hyphens, spaces, dots, case)
 function nameKey(name: string): string {
   return name.toLowerCase().replace(/[-.\s]/g, '')
 }
 
 async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
-  const { data: html } = await axios.get('https://codmunity.gg/tier-list/warzone', {
+  const { data: html } = await axios.get('https://codmunity.gg/es/tier-list/warzone', {
     headers: HEADERS, timeout: 15000,
   })
 
-  // Pre-build image map via regex (cheerio can't reliably find Angular SSR images)
-  // Pattern: 150w-{WEAPON-NAME}-{Range/Type}-Warzone-Loadout-CODMunity-{ID}.webp
+  // Pre-build image map via regex (Angular SSR, cheerio can't find images reliably)
   const imgMap = new Map<string, string>()
   const imgMatches = html.matchAll(
-    /src="(https:\/\/assets\.codmunity\.gg\/optimized\/150w-([^"]*?Warzone-Loadout-CODMunity[^"]+)\.webp)"/g
+    /src="(https:\/\/assets\.codmunity\.gg\/optimized\/150w-([^"]*?Warzone-Loadout-CODMunity[^"]+)\.webp)"/g,
   )
   for (const m of imgMatches) {
     const thumbUrl = m[1]
-    const filename  = m[2] // e.g. DS20-Mirage-Long-Range-Warzone-Loadout-CODMunity-9370
-    // Extract weapon name part: everything before -Long-Range|-Close-Range|-Sniper|etc
+    const filename = m[2]
     const namePart = filename.replace(
-      /[-](Long[-]Range|Close[-]Range|Sniper[-]Support|Sniper|Secondary|Support|Mid[-]Range|undefined)[-]Warzone.*/i, ''
+      /[-](Long[-]Range|Close[-]Range|Sniper[-]Support|Sniper|Secondary|Support|Mid[-]Range|undefined)[-]Warzone.*/i, '',
     )
-    const key = nameKey(namePart.replace(/-/g, ' ')) // e.g. "ds20mirage"
-    if (!imgMap.has(key)) {
-      // Use full-size (remove 150w- prefix)
-      imgMap.set(key, thumbUrl.replace('/150w-', '/'))
-    }
+    const key = nameKey(namePart.replace(/-/g, ' '))
+    if (!imgMap.has(key)) imgMap.set(key, thumbUrl.replace('/150w-', '/'))
   }
 
   const $ = cheerio.load(html)
@@ -239,9 +353,11 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
 
   $('[class*="tier-list-section"]').each((_i, section) => {
     const classList = $(section).attr('class') ?? ''
-    if (classList.includes('tier-list-section-item') ||
-        classList.includes('tier-list-section-title') ||
-        classList.includes('tier-list-section-items')) return
+    if (
+      classList.includes('tier-list-section-item') ||
+      classList.includes('tier-list-section-title') ||
+      classList.includes('tier-list-section-items')
+    ) return
 
     let tier = 'C'
     for (const [cls, t] of Object.entries(classTierMap)) {
@@ -254,15 +370,13 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
       seen.add(name)
 
       const href     = $(el).closest('a').attr('href') ?? ''
-      const slug     = href.replace('/weapon/bo7/', '')
+      const slug     = href.replace('/es/weapon/bo7/', '').replace('/weapon/bo7/', '')
       const subtitle = $(el)
         .closest('[class*="tier-list-section-item-texts"]')
         .find('[class*="tier-list-section-item-subtitle"]')
         .first().text().trim()
 
-      // Look up the clean render image by normalized weapon name
       const image_url = imgMap.get(nameKey(name)) ?? undefined
-
       weapons.push({ weapon_name: name, tier, category: subtitle || '', slug, image_url })
     })
   })
@@ -271,7 +385,6 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
     const found = weapons.filter(w => w.image_url).length
     console.log(`[scraper] Codmunity imágenes: ${found}/${weapons.length} armas`)
   }
-
   return weapons
 }
 
@@ -292,7 +405,7 @@ function parseCodmunityDate(str: string): Date | null {
 
 async function fetchWeaponChange(slug: string): Promise<{ change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }> {
   try {
-    const { data: html } = await axios.get(`https://codmunity.gg/weapon/bo7/${slug}`, {
+    const { data: html } = await axios.get(`https://codmunity.gg/es/weapon/bo7/${slug}`, {
       headers: HEADERS, timeout: 10000,
     })
     const dateMatches = html.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+,\s+\d{4}/g) ?? []
@@ -312,7 +425,9 @@ async function fetchWeaponChange(slug: string): Promise<{ change_type: 'buff' | 
   }
 }
 
-async function enrichWithCodmunityChanges(weapons: CodmunityWeapon[]): Promise<Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>> {
+async function enrichWithCodmunityChanges(
+  weapons: CodmunityWeapon[],
+): Promise<Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>> {
   const results = new Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>()
   const BATCH = 5
   const weaponsWithSlug = weapons.filter(w => w.slug)
@@ -343,7 +458,7 @@ function guessCategory(name: string): string {
   return 'SMG'
 }
 
-// ── Source 3: noticias buff/nerf scan ─────────────────────────────────────
+// ── Source 3: noticias buff/nerf scan (still from wzmetaloadouts) ──────────
 
 async function fetchNoticias(): Promise<NoticiaIndex[]> {
   const { data } = await axios.get<NoticiaIndex[]>(`${WZ_BASE}/noticias-index.json`, {
@@ -382,13 +497,9 @@ function extractNewsChanges(text: string): Map<string, 'buff' | 'nerf'> {
 }
 
 // ── Aggregation engine ─────────────────────────────────────────────────────
-// Tier priority:
-//   - wzmetaloadouts  → authoritative for the 15 weapons it covers (has real rankings)
-//   - codmunity       → supplements with weapons NOT in wzmetaloadouts
-// sources_count reflects how many sources have each weapon (for confidence indicator)
 
 function aggregateWeapons(
-  wzWeapons: SourceWeapon[],
+  wzStatsWeapons: SourceWeapon[],
   codmunityWeapons: CodmunityWeapon[],
   codmunityChanges: Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>,
   newsChanges: Map<string, 'buff' | 'nerf'>,
@@ -406,8 +517,7 @@ function aggregateWeapons(
   changed_at: Date | null
   sources_count: number
 }> {
-
-  const wzMap  = new Map(wzWeapons.map(w => [normalizeKey(w.weapon_name), w]))
+  const wzMap  = new Map(wzStatsWeapons.map(w => [normalizeKey(w.weapon_name), w]))
   const codMap = new Map(codmunityWeapons.map(w => [normalizeKey(w.weapon_name), w]))
   const allKeys = new Set([...wzMap.keys(), ...codMap.keys()])
 
@@ -418,17 +528,15 @@ function aggregateWeapons(
     const wz  = wzMap.get(key)
     const cod = codMap.get(key)
 
-    // --- Tier: wzmetaloadouts is authoritative when available ---
-    // codmunity only sets the tier for weapons wzmetaloadouts doesn't cover
+    // wzstats is authoritative when available; codmunity supplements
     const finalTier  = wz ? wz.tier : scoreToTier(TIER_VAL[cod!.tier] ?? 1)
     const tierScore  = TIER_VAL[finalTier] ?? 1
     const sourcesCount = (wz ? 1 : 0) + (cod ? 1 : 0)
 
-    // --- Best data from available sources ---
     const weapon_name  = wz?.weapon_name ?? cod!.weapon_name
-    const category     = wz?.category ?? (cod?.category ? cod.category : guessCategory(weapon_name))
+    const category     = wz?.category ?? (cod?.category ? translateCategory(cod.category) : guessCategory(weapon_name))
     const ranking      = wz?.ranking ?? null
-    // Prefer codmunity clean renders (no skin), fall back to wzmetaloadouts gold skin
+    // Prefer codmunity clean renders, fall back to wzstats image
     const image_url    = cod?.image_url ?? wz?.image_url ?? null
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
@@ -436,7 +544,7 @@ function aggregateWeapons(
       ? wz.meta_build
       : null
 
-    // --- Change type: wz flags → codmunity dated history → news scan ---
+    // Change type: wzstats flags → codmunity dated history → news scan
     let change_type: string | null = null
     let changed_at: Date | null = null
 
@@ -462,17 +570,9 @@ function aggregateWeapons(
     }
 
     results.push({
-      weapon_name,
-      tier: finalTier,
-      tier_score: tierScore,
-      category,
-      ranking,
-      image_url,
-      game_modes,
-      tactical_cat,
-      meta_build,
-      change_type,
-      changed_at,
+      weapon_name, tier: finalTier, tier_score: tierScore,
+      category, ranking, image_url, game_modes, tactical_cat,
+      meta_build, change_type, changed_at,
       sources_count: sourcesCount,
     })
   }
@@ -484,25 +584,6 @@ function normalizeKey(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-// Try to find an image on wzmetaloadouts.com for weapons not in the top-15 JSON
-const imageCache = new Map<string, string | null>()
-
-async function resolveImageUrl(weaponName: string): Promise<string | null> {
-  if (imageCache.has(weaponName)) return imageCache.get(weaponName)!
-
-  const encoded = encodeURIComponent(weaponName)
-  const url = `${WZ_BASE}/weapons/gold/${encoded}.png`
-  try {
-    const resp = await axios.head(url, { headers: HEADERS, timeout: 5000, validateStatus: s => s < 500 })
-    const result = resp.status === 200 ? url : null
-    imageCache.set(weaponName, result)
-    return result
-  } catch {
-    imageCache.set(weaponName, null)
-    return null
-  }
-}
-
 // ── Persist weapons ────────────────────────────────────────────────────────
 
 async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Promise<void> {
@@ -512,7 +593,6 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
   for (const w of aggregated) {
     const oldTier = currentMap.get(normalizeKey(w.weapon_name))
 
-    // Tier shift detection as final fallback for change_type
     let changeType = w.change_type
     let changedAt  = w.changed_at
     if (!changeType && oldTier) {
@@ -578,11 +658,12 @@ async function savePerks(ventajas: VentajaItem[]): Promise<void> {
 
 async function saveClases(clases: ClaseItem[]): Promise<void> {
   for (const c of clases) {
+    // Store slot names as-is (clases.js slots are already in Spanish)
     const primAtt = Object.fromEntries(
-      (c.primaria?.attachments ?? []).map(a => [translateSlot(a.slot), a.item]),
+      (c.primaria?.attachments ?? []).map(a => [a.slot, a.item]),
     )
     const secAtt = Object.fromEntries(
-      (c.secundaria?.attachments ?? []).map(a => [translateSlot(a.slot), a.item]),
+      (c.secundaria?.attachments ?? []).map(a => [a.slot, a.item]),
     )
     const primArma = c.primaria?.nombre ?? c.primaria?.arma ?? null
     const secArma  = c.secundaria?.nombre ?? c.secundaria?.arma ?? null
@@ -630,9 +711,8 @@ async function saveNoticias(
 export async function scrapeWeaponMeta(): Promise<void> {
   console.log('[scraper] Iniciando scrape multi-fuente...')
 
-  // Fetch all sources concurrently
-  const [wzRes, codmunityRes, ventajasRes, clasesRes, noticiasRes] = await Promise.allSettled([
-    fetchWZMeta(),
+  const [wzStatsRes, codmunityRes, ventajasRes, clasesRes, noticiasRes] = await Promise.allSettled([
+    fetchWZStats(),
     fetchCodmunityTiers(),
     axios.get<string>(`${WZ_BASE}/ventajas.js`, { headers: HEADERS, timeout: 10000, responseType: 'text' })
       .then(r => evalJSVar(r.data, 'VENTAJAS') as VentajaItem[] ?? []),
@@ -641,30 +721,28 @@ export async function scrapeWeaponMeta(): Promise<void> {
     fetchNoticias(),
   ])
 
-  const wzWeapons       = wzRes.status       === 'fulfilled' ? wzRes.value       : []
-  const codmunityRaw    = codmunityRes.status === 'fulfilled' ? codmunityRes.value : []
-  const ventajas        = ventajasRes.status  === 'fulfilled' ? ventajasRes.value  : []
-  const clases          = clasesRes.status    === 'fulfilled' ? clasesRes.value    : []
-  const noticias        = noticiasRes.status  === 'fulfilled' ? noticiasRes.value  : []
+  const wzStatsWeapons = wzStatsRes.status    === 'fulfilled' ? wzStatsRes.value    : []
+  const codmunityRaw   = codmunityRes.status  === 'fulfilled' ? codmunityRes.value  : []
+  const ventajas       = ventajasRes.status   === 'fulfilled' ? ventajasRes.value   : []
+  const clases         = clasesRes.status     === 'fulfilled' ? clasesRes.value     : []
+  const noticias       = noticiasRes.status   === 'fulfilled' ? noticiasRes.value   : []
 
-  if (wzRes.status       === 'rejected') console.warn('[scraper] wzmetaloadouts falló:', (wzRes.reason as Error).message)
+  if (wzStatsRes.status === 'rejected')   console.warn('[scraper] wzstats falló:', (wzStatsRes.reason as Error).message)
   if (codmunityRes.status === 'rejected') console.warn('[scraper] codmunity falló:', (codmunityRes.reason as Error).message)
 
-  console.log(`[scraper] Fuentes: wz=${wzWeapons.length} codmunity=${codmunityRaw.length} ventajas=${ventajas.length} clases=${clases.length} noticias=${noticias.length}`)
+  console.log(`[scraper] Fuentes: wzstats=${wzStatsWeapons.length} codmunity=${codmunityRaw.length} ventajas=${ventajas.length} clases=${clases.length} noticias=${noticias.length}`)
 
-  if (wzWeapons.length === 0 && codmunityRaw.length === 0) {
+  if (wzStatsWeapons.length === 0 && codmunityRaw.length === 0) {
     console.warn('[scraper] Ambas fuentes de armas fallaron — abortando')
     return
   }
 
-  // Fetch codmunity per-weapon buff/nerf history (batched)
   console.log('[scraper] Obteniendo historial buff/nerf de codmunity...')
   const codmunityChanges = codmunityRaw.length > 0
     ? await enrichWithCodmunityChanges(codmunityRaw)
     : new Map()
   console.log(`[scraper] ${codmunityChanges.size} armas con historial de cambios`)
 
-  // Fetch noticias content for additional buff/nerf signals
   const newsChanges = new Map<string, 'buff' | 'nerf'>()
   const contentMap  = new Map<string, string>()
   for (let i = 0; i < Math.min(noticias.length, 5); i += 2) {
@@ -682,30 +760,14 @@ export async function scrapeWeaponMeta(): Promise<void> {
     if (i + 2 < noticias.length) await new Promise(r => setTimeout(r, 400))
   }
 
-  // Aggregate weapons from all sources
-  const aggregated = aggregateWeapons(wzWeapons, codmunityRaw, codmunityChanges, newsChanges)
+  const aggregated = aggregateWeapons(wzStatsWeapons, codmunityRaw, codmunityChanges, newsChanges)
   console.log(`[scraper] Agregadas ${aggregated.length} armas (${aggregated.filter(w => w.sources_count >= 2).length} en 2+ fuentes)`)
 
-  // Resolve images for codmunity-only weapons (no image from wzmetaloadouts JSON)
-  const noImageWeapons = aggregated.filter(w => !w.image_url)
-  if (noImageWeapons.length > 0) {
-    console.log(`[scraper] Buscando imágenes para ${noImageWeapons.length} armas sin imagen...`)
-    await Promise.allSettled(
-      noImageWeapons.map(async w => {
-        const url = await resolveImageUrl(w.weapon_name)
-        if (url) w.image_url = url
-      })
-    )
-    const resolved = noImageWeapons.filter(w => w.image_url).length
-    console.log(`[scraper] Imágenes resueltas: ${resolved}/${noImageWeapons.length}`)
-  }
-
-  // Tier distribution log
+  // Tier distribution
   const tierDist: Record<string, number> = { S: 0, A: 0, B: 0, C: 0 }
   for (const w of aggregated) tierDist[w.tier] = (tierDist[w.tier] ?? 0) + 1
   console.log(`[scraper] Tiers — S:${tierDist.S} A:${tierDist.A} B:${tierDist.B} C:${tierDist.C}`)
 
-  // Save everything
   await saveWeapons(aggregated)
   if (ventajas.length) await savePerks(ventajas)
   if (clases.length)   await saveClases(clases)
