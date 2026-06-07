@@ -107,6 +107,32 @@ function slotToES(slot: string): string {
   return SLOT_ES_MAP[slot] ?? slot
 }
 
+// ── Codmunity slot labels → canonical Spanish ─────────────────────────────
+
+const COD_SLOT_MAP: Record<string, string> = {
+  'mira':                   'Mira',
+  'bocacha':                'Bocacha',
+  'canon':                  'Cañón',
+  'canonn':                 'Cañón',
+  'cañón':                  'Cañón',
+  'culata':                 'Culata',
+  'cullata':                'Culata',
+  'cargador':               'Cargador',
+  'laser':                  'Láser',
+  'láser':                  'Láser',
+  'fire mods':              'Mods de Disparo',
+  'mods de disparo':        'Mods de Disparo',
+  'acople':                 'Empuñadura Delantera',
+  'empuñadura delantera':   'Empuñadura Delantera',
+  'empunadura delantera':   'Empuñadura Delantera',
+  'empuñadura trasera':     'Empuñadura Trasera',
+  'empunadura trasera':     'Empuñadura Trasera',
+}
+
+function codSlotToES(slot: string): string {
+  return COD_SLOT_MAP[slot.toLowerCase().trim()] ?? slot.trim()
+}
+
 // ── Translation helpers ────────────────────────────────────────────────────
 
 function translateCategory(tipo: string): string {
@@ -337,6 +363,12 @@ interface CodmunityWeapon {
   image_url?: string
 }
 
+interface CodmunityWeaponData {
+  change_type: 'buff' | 'nerf' | 'new' | null
+  changed_at: Date | null
+  build: Record<string, string> | null
+}
+
 function nameKey(name: string): string {
   return name.toLowerCase().replace(/[-.\s]/g, '')
 }
@@ -404,7 +436,7 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
   return weapons
 }
 
-// ── Source 2b: codmunity.gg per-weapon buff/nerf history ──────────────────
+// ── Source 2b: codmunity.gg per-weapon data (build + buff/nerf) ───────────
 
 const MONTHS: Record<string, number> = {
   Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
@@ -419,7 +451,23 @@ function parseCodmunityDate(str: string): Date | null {
   return new Date(Number(m[3]), month, Number(m[2]))
 }
 
-async function fetchWeaponChange(slug: string): Promise<{ change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }> {
+const COD_ATT_RE = /class="container-attachment[^"]*">.*?class="attachment-name">([^<]+)<\/div>.*?class="attachment-tag-value">([^<]+)<\/div>/gs
+
+function extractCodmunityBuild(html: string): Record<string, string> | null {
+  const styleEnd = html.lastIndexOf('</style>')
+  const body = styleEnd > 0 ? html.slice(styleEnd) : html
+  const build: Record<string, string> = {}
+  let count = 0
+  for (const m of body.matchAll(COD_ATT_RE)) {
+    if (count >= 5) break
+    const name = m[1].trim().toUpperCase()
+    const slot = codSlotToES(m[2])
+    if (name && slot) { build[slot] = name; count++ }
+  }
+  return count > 0 ? build : null
+}
+
+async function fetchCodmunityWeaponData(slug: string): Promise<CodmunityWeaponData> {
   try {
     const { data: html } = await axios.get(`https://codmunity.gg/es/weapon/bo7/${slug}`, {
       headers: HEADERS, timeout: 10000,
@@ -429,33 +477,35 @@ async function fetchWeaponChange(slug: string): Promise<{ change_type: 'buff' | 
       ?.map((m: string) => m.replace(/balancing-tag[^>]*>/, '').replace('<', '').trim().toLowerCase())
       .filter((t: string) => /^(buff|nerf|new)$/.test(t)) ?? []
 
-    if (tagMatches.length === 0 || dateMatches.length === 0) {
-      return { change_type: null, changed_at: null }
-    }
-    return {
-      change_type: tagMatches[0] as 'buff' | 'nerf' | 'new',
-      changed_at:  parseCodmunityDate(dateMatches[0]),
-    }
+    const change_type = tagMatches.length > 0 ? tagMatches[0] as 'buff' | 'nerf' | 'new' : null
+    const changed_at  = change_type && dateMatches.length > 0 ? parseCodmunityDate(dateMatches[0]) : null
+    const build       = extractCodmunityBuild(html)
+
+    return { change_type, changed_at, build }
   } catch {
-    return { change_type: null, changed_at: null }
+    return { change_type: null, changed_at: null, build: null }
   }
 }
 
-async function enrichWithCodmunityChanges(
+async function enrichWithCodmunityData(
   weapons: CodmunityWeapon[],
-): Promise<Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>> {
-  const results = new Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>()
+): Promise<Map<string, CodmunityWeaponData>> {
+  const results = new Map<string, CodmunityWeaponData>()
   const BATCH = 5
   const weaponsWithSlug = weapons.filter(w => w.slug)
 
   for (let i = 0; i < weaponsWithSlug.length; i += BATCH) {
     const batch = weaponsWithSlug.slice(i, i + BATCH)
     const res = await Promise.allSettled(
-      batch.map(w => fetchWeaponChange(w.slug).then(r => ({ name: w.weapon_name, ...r }))),
+      batch.map(w => fetchCodmunityWeaponData(w.slug).then(r => ({ name: w.weapon_name, ...r }))),
     )
     for (const r of res) {
       if (r.status === 'fulfilled') {
-        results.set(r.value.name, { change_type: r.value.change_type, changed_at: r.value.changed_at })
+        results.set(r.value.name, {
+          change_type: r.value.change_type,
+          changed_at:  r.value.changed_at,
+          build:       r.value.build,
+        })
       }
     }
     if (i + BATCH < weaponsWithSlug.length) await new Promise(r => setTimeout(r, 400))
@@ -517,7 +567,7 @@ function extractNewsChanges(text: string): Map<string, 'buff' | 'nerf'> {
 function aggregateWeapons(
   wzStatsWeapons: SourceWeapon[],
   codmunityWeapons: CodmunityWeapon[],
-  codmunityChanges: Map<string, { change_type: 'buff' | 'nerf' | 'new' | null; changed_at: Date | null }>,
+  codmunityData: Map<string, CodmunityWeaponData>,
   newsChanges: Map<string, 'buff' | 'nerf'>,
 ): Array<{
   weapon_name: string
@@ -556,9 +606,11 @@ function aggregateWeapons(
     const image_url    = cod?.image_url ?? wz?.image_url ?? null
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
-    const meta_build   = wz?.meta_build && Object.keys(wz.meta_build).length > 0
-      ? wz.meta_build
-      : null
+    const codData      = codmunityData.get(weapon_name)
+    // Codmunity build is primary (more accurate); wzstats JSON is fallback
+    const meta_build   = (codData?.build && Object.keys(codData.build).length > 0)
+      ? codData.build
+      : (wz?.meta_build && Object.keys(wz.meta_build).length > 0 ? wz.meta_build : null)
 
     // Change type: wzstats flags → codmunity dated history → news scan
     let change_type: string | null = null
@@ -569,13 +621,12 @@ function aggregateWeapons(
       changed_at  = wz.changed_at ?? new Date()
     }
 
-    const codChange = codmunityChanges.get(weapon_name)
-    if (codChange?.change_type && codChange.changed_at) {
-      const ageDays = (Date.now() - codChange.changed_at.getTime()) / (1000 * 60 * 60 * 24)
+    if (codData?.change_type && codData.changed_at) {
+      const ageDays = (Date.now() - codData.changed_at.getTime()) / (1000 * 60 * 60 * 24)
       if (ageDays <= RECENT_DAYS) {
-        if (!change_type || change_type === codChange.change_type) {
-          change_type = codChange.change_type
-          changed_at  = codChange.changed_at
+        if (!change_type || change_type === codData.change_type) {
+          change_type = codData.change_type
+          changed_at  = codData.changed_at
         }
       }
     }
@@ -584,6 +635,7 @@ function aggregateWeapons(
       const newsHit = newsChanges.get(weapon_name)
       if (newsHit) { change_type = newsHit; changed_at = new Date() }
     }
+
 
     results.push({
       weapon_name, tier: finalTier, tier_score: tierScore,
@@ -753,11 +805,13 @@ export async function scrapeWeaponMeta(): Promise<void> {
     return
   }
 
-  console.log('[scraper] Obteniendo historial buff/nerf de codmunity...')
-  const codmunityChanges = codmunityRaw.length > 0
-    ? await enrichWithCodmunityChanges(codmunityRaw)
-    : new Map()
-  console.log(`[scraper] ${codmunityChanges.size} armas con historial de cambios`)
+  console.log('[scraper] Obteniendo builds y historial buff/nerf de codmunity...')
+  const codmunityData = codmunityRaw.length > 0
+    ? await enrichWithCodmunityData(codmunityRaw)
+    : new Map<string, CodmunityWeaponData>()
+  const buildsCount  = [...codmunityData.values()].filter(d => d.build).length
+  const changesCount = [...codmunityData.values()].filter(d => d.change_type).length
+  console.log(`[scraper] Codmunity: ${buildsCount} builds, ${changesCount} cambios`)
 
   const newsChanges = new Map<string, 'buff' | 'nerf'>()
   const contentMap  = new Map<string, string>()
@@ -776,7 +830,7 @@ export async function scrapeWeaponMeta(): Promise<void> {
     if (i + 2 < noticias.length) await new Promise(r => setTimeout(r, 400))
   }
 
-  const aggregated = aggregateWeapons(wzStatsWeapons, codmunityRaw, codmunityChanges, newsChanges)
+  const aggregated = aggregateWeapons(wzStatsWeapons, codmunityRaw, codmunityData, newsChanges)
   console.log(`[scraper] Agregadas ${aggregated.length} armas (${aggregated.filter(w => w.sources_count >= 2).length} en 2+ fuentes)`)
 
   // Tier distribution
