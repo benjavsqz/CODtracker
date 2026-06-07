@@ -655,10 +655,14 @@ function normalizeKey(name: string): string {
 // ── Persist weapons ────────────────────────────────────────────────────────
 
 async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Promise<void> {
+  // Only keep weapons that have an image — ones without are stale/legacy weapons from old game eras
+  const toSave = aggregated.filter(w => w.image_url)
+  console.log(`[scraper] Filtrando: ${aggregated.length} total → ${toSave.length} con imagen`)
+
   const existing = await query('SELECT weapon_name, tier FROM weapon_meta')
   const currentMap = new Map(existing.rows.map((r: any) => [normalizeKey(r.weapon_name), r.tier]))
 
-  for (const w of aggregated) {
+  for (const w of toSave) {
     const oldTier = currentMap.get(normalizeKey(w.weapon_name))
 
     let changeType = w.change_type
@@ -705,12 +709,14 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
     }
   }
 
-  // Remove stale weapons no longer in any source
-  const currentKeys = aggregated.map(w => normalizeKey(w.weapon_name))
-  await query(
-    `DELETE FROM weapon_meta WHERE LOWER(TRIM(weapon_name)) != ALL($1::text[])`,
-    [currentKeys],
-  )
+  // Remove weapons not in the current filtered set (no image = legacy/stale)
+  const currentKeys = toSave.map(w => normalizeKey(w.weapon_name))
+  if (currentKeys.length > 0) {
+    await query(
+      `DELETE FROM weapon_meta WHERE NOT (LOWER(TRIM(weapon_name)) = ANY($1::text[]))`,
+      [currentKeys],
+    )
+  }
 }
 
 // ── Persist perks ──────────────────────────────────────────────────────────
