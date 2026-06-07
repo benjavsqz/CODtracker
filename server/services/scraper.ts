@@ -348,6 +348,10 @@ function extractNewsChanges(text: string): Map<string, 'buff' | 'nerf'> {
 }
 
 // ── Aggregation engine ─────────────────────────────────────────────────────
+// Tier priority:
+//   - wzmetaloadouts  → authoritative for the 15 weapons it covers (has real rankings)
+//   - codmunity       → supplements with weapons NOT in wzmetaloadouts
+// sources_count reflects how many sources have each weapon (for confidence indicator)
 
 function aggregateWeapons(
   wzWeapons: SourceWeapon[],
@@ -369,11 +373,8 @@ function aggregateWeapons(
   sources_count: number
 }> {
 
-  // Build lookup maps
-  const wzMap = new Map(wzWeapons.map(w => [normalizeKey(w.weapon_name), w]))
+  const wzMap  = new Map(wzWeapons.map(w => [normalizeKey(w.weapon_name), w]))
   const codMap = new Map(codmunityWeapons.map(w => [normalizeKey(w.weapon_name), w]))
-
-  // Collect all unique weapon names from both sources
   const allKeys = new Set([...wzMap.keys(), ...codMap.keys()])
 
   const RECENT_DAYS = 21
@@ -383,43 +384,36 @@ function aggregateWeapons(
     const wz  = wzMap.get(key)
     const cod = codMap.get(key)
 
-    // --- Tier aggregation ---
-    const tierEntries: number[] = []
-    if (wz)  tierEntries.push(TIER_VAL[wz.tier])
-    if (cod) tierEntries.push(TIER_VAL[cod.tier])
-
-    const avgScore   = tierEntries.reduce((a, b) => a + b, 0) / tierEntries.length
-    const finalTier  = scoreToTier(avgScore)
-    const sourcesCount = tierEntries.length
+    // --- Tier: wzmetaloadouts is authoritative when available ---
+    // codmunity only sets the tier for weapons wzmetaloadouts doesn't cover
+    const finalTier  = wz ? wz.tier : scoreToTier(TIER_VAL[cod!.tier] ?? 1)
+    const tierScore  = TIER_VAL[finalTier] ?? 1
+    const sourcesCount = (wz ? 1 : 0) + (cod ? 1 : 0)
 
     // --- Best data from available sources ---
-    const weapon_name = wz?.weapon_name ?? cod!.weapon_name
-    const category    = wz?.category ?? (cod?.category ? cod.category : guessCategory(weapon_name))
-    const ranking     = wz?.ranking ?? null
-    const image_url   = wz?.image_url ?? null
-    const game_modes  = wz?.game_modes ?? []
+    const weapon_name  = wz?.weapon_name ?? cod!.weapon_name
+    const category     = wz?.category ?? (cod?.category ? cod.category : guessCategory(weapon_name))
+    const ranking      = wz?.ranking ?? null
+    const image_url    = wz?.image_url ?? null
+    const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
-    const meta_build  = wz?.meta_build && Object.keys(wz.meta_build).length > 0
+    const meta_build   = wz?.meta_build && Object.keys(wz.meta_build).length > 0
       ? wz.meta_build
       : null
 
-    // --- Change type: merge all signals ---
-    // Priority: wz flags → codmunity dated history → news scan → tier shift
+    // --- Change type: wz flags → codmunity dated history → news scan ---
     let change_type: string | null = null
     let changed_at: Date | null = null
 
-    // Signal 1: wzmetaloadouts direct flags
     if (wz?.change_type) {
       change_type = wz.change_type
       changed_at  = wz.changed_at ?? new Date()
     }
 
-    // Signal 2: codmunity dated history (more precise dates)
     const codChange = codmunityChanges.get(weapon_name)
     if (codChange?.change_type && codChange.changed_at) {
       const ageDays = (Date.now() - codChange.changed_at.getTime()) / (1000 * 60 * 60 * 24)
       if (ageDays <= RECENT_DAYS) {
-        // If both sources agree on the type, keep it; if only one, use the dated one
         if (!change_type || change_type === codChange.change_type) {
           change_type = codChange.change_type
           changed_at  = codChange.changed_at
@@ -427,7 +421,6 @@ function aggregateWeapons(
       }
     }
 
-    // Signal 3: news scan (weakest signal)
     if (!change_type) {
       const newsHit = newsChanges.get(weapon_name)
       if (newsHit) { change_type = newsHit; changed_at = new Date() }
@@ -436,7 +429,7 @@ function aggregateWeapons(
     results.push({
       weapon_name,
       tier: finalTier,
-      tier_score: Math.round(avgScore * 100) / 100,
+      tier_score: tierScore,
       category,
       ranking,
       image_url,
