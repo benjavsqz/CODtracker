@@ -201,10 +201,36 @@ interface CodmunityWeapon {
   image_url?: string
 }
 
+// Normalize a weapon name to a simple key for matching (remove hyphens, spaces, dots, case)
+function nameKey(name: string): string {
+  return name.toLowerCase().replace(/[-.\s]/g, '')
+}
+
 async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
   const { data: html } = await axios.get('https://codmunity.gg/tier-list/warzone', {
     headers: HEADERS, timeout: 15000,
   })
+
+  // Pre-build image map via regex (cheerio can't reliably find Angular SSR images)
+  // Pattern: 150w-{WEAPON-NAME}-{Range/Type}-Warzone-Loadout-CODMunity-{ID}.webp
+  const imgMap = new Map<string, string>()
+  const imgMatches = html.matchAll(
+    /src="(https:\/\/assets\.codmunity\.gg\/optimized\/150w-([^"]*?Warzone-Loadout-CODMunity[^"]+)\.webp)"/g
+  )
+  for (const m of imgMatches) {
+    const thumbUrl = m[1]
+    const filename  = m[2] // e.g. DS20-Mirage-Long-Range-Warzone-Loadout-CODMunity-9370
+    // Extract weapon name part: everything before -Long-Range|-Close-Range|-Sniper|etc
+    const namePart = filename.replace(
+      /[-](Long[-]Range|Close[-]Range|Sniper[-]Support|Sniper|Secondary|Support|Mid[-]Range|undefined)[-]Warzone.*/i, ''
+    )
+    const key = nameKey(namePart.replace(/-/g, ' ')) // e.g. "ds20mirage"
+    if (!imgMap.has(key)) {
+      // Use full-size (remove 150w- prefix)
+      imgMap.set(key, thumbUrl.replace('/150w-', '/'))
+    }
+  }
+
   const $ = cheerio.load(html)
   const weapons: CodmunityWeapon[] = []
   const seen = new Set<string>()
@@ -227,25 +253,24 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
       if (!name || name.length < 2 || name.length > 60 || seen.has(name)) return
       seen.add(name)
 
-      const card   = $(el).closest('a')
-      const href   = card.attr('href') ?? ''
-      const slug   = href.replace('/weapon/bo7/', '')
-
+      const href     = $(el).closest('a').attr('href') ?? ''
+      const slug     = href.replace('/weapon/bo7/', '')
       const subtitle = $(el)
         .closest('[class*="tier-list-section-item-texts"]')
         .find('[class*="tier-list-section-item-subtitle"]')
         .first().text().trim()
 
-      // Extract clean weapon render image (no skin)
-      const rawImgSrc = card.find('img[class*="weapon-image"]').attr('src') ?? ''
-      // Use full-size version (remove 150w- thumbnail prefix)
-      const image_url = rawImgSrc
-        ? rawImgSrc.replace('/150w-', '/').replace('/300w-', '/')
-        : undefined
+      // Look up the clean render image by normalized weapon name
+      const image_url = imgMap.get(nameKey(name)) ?? undefined
 
       weapons.push({ weapon_name: name, tier, category: subtitle || '', slug, image_url })
     })
   })
+
+  if (imgMap.size > 0) {
+    const found = weapons.filter(w => w.image_url).length
+    console.log(`[scraper] Codmunity imágenes: ${found}/${weapons.length} armas`)
+  }
 
   return weapons
 }
