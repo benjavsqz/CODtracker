@@ -646,20 +646,30 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-                      {/* Meta strength bar: ranking-based (1=100%) or tier_score-based */}
+                      {/* Pick rate bar: tier-based % with rank fine-tune */}
                       {(() => {
                         const score = Number(w.tier_score) || 0
-                        const pct = w.ranking
-                          ? Math.max(10, Math.round((1 - (w.ranking - 1) / 15) * 100))
-                          : score > 0 ? Math.round((score / 4) * 70) : 0
-                        return pct > 0 ? (
-                          <div className="mt-2 h-px bg-white/[0.06] rounded-full overflow-hidden">
-                            <motion.div className={`h-full ${cfg.bar} opacity-60`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }} />
+                        // Base % per tier: S→92, A→70, B→45, C→20
+                        const BASE: Record<number, number> = { 4: 92, 3: 70, 2: 45, 1: 20 }
+                        let pct = BASE[score] ?? 20
+                        // Fine-tune ±8 based on rank within category if available
+                        if (w.ranking && w.ranking <= 20) {
+                          pct = Math.min(100, Math.max(10, pct + Math.round(8 - w.ranking * 0.8)))
+                        }
+                        return (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[7px] text-white/15 uppercase tracking-wide">Meta</span>
+                              <span className={`text-[8px] font-bold ${cfg.label}`}>{pct}%</span>
+                            </div>
+                            <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                              <motion.div className={`h-full ${cfg.bar} opacity-70`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }} />
+                            </div>
                           </div>
-                        ) : null
+                        )
                       })()}
                     </motion.div>
                   )
