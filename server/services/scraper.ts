@@ -78,11 +78,6 @@ interface NoticiaIndex {
   fecha_legible: string
 }
 
-interface BORBuild {
-  tier: string
-  rank: number
-  attachments: Array<{ name: string; slot: string; uniqueId: string }>
-}
 
 interface WZStatsTierWeapon {
   name: string
@@ -234,32 +229,53 @@ async function fetchWZStatsTierList(): Promise<WZStatsTierWeapon[]> {
   return weapons
 }
 
-// ── Source 1b: wzstats BOR builds API (Spanish names) ────────────────────
+// ── Source 1b: wzstats weapon page → embedded JSON → wz2 best build ────────
+// The BOR API gives archetype builds (wrong for Warzone).
+// The correct Warzone build is embedded in the page as:
+//   type="application/json" → URL contains /wz2/weapons/builds/wzstats/...
+//   build.type === 'wz2' && build.isBestBuild === true
+
+const WZ_SLOTS = ['muzzle','barrel','stock','underbarrel','rearGrip','magazine','laser','optic','firemods'] as const
 
 async function fetchWZStatsBuild(slug: string): Promise<Record<string, string> | null> {
   try {
-    const { data } = await axios.get<BORBuild[]>(
-      `${WZ_STATS_API}/v3/bor/builds/${slug}/?language=es`,
-      {
-        headers: { ...HEADERS, Referer: `${WZ_STATS_BASE}/es/best-loadouts/${slug}` },
-        timeout: 10000,
-      },
+    const { data: html } = await axios.get(
+      `${WZ_STATS_BASE}/es/best-loadouts/${slug}`,
+      { headers: HEADERS, timeout: 15000 },
     )
-    if (!Array.isArray(data) || !data.length) return null
 
-    // Pick best build: META tier first, then lowest rank
-    const sorted = [...data].sort((a, b) => {
-      const ts = (t: string) => (t === 'META' ? 0 : t === 'A' ? 1 : t === 'B' ? 2 : 3)
-      return ts(a.tier) - ts(b.tier) || (a.rank ?? 999) - (b.rank ?? 999)
-    })
-    const best = sorted[0]
-    if (!best?.attachments?.length) return null
+    // Extract all embedded JSON blocks
+    const blocks = [...(html as string).matchAll(/application\/json">({.*?})<\/script>/gs)]
 
-    const build: Record<string, string> = {}
-    for (const att of best.attachments.slice(0, 5)) {
-      if (att.name && att.slot) build[slotToES(att.slot)] = att.name
+    for (const block of blocks) {
+      let outer: Record<string, any>
+      try { outer = JSON.parse(block[1]) } catch { continue }
+
+      for (const val of Object.values(outer) as any[]) {
+        const url: string = val?.u ?? ''
+        if (!url.includes('/wz2/weapons/builds/wzstats/with-attachments/')) continue
+
+        const builds: any[] = val?.b?.builds ?? []
+        if (!builds.length) continue
+
+        // Priority: wz2 isBestBuild → first wz2 build → bo7 isBestBuild
+        const wz2Best  = builds.find(b => b.type === 'wz2' && b.isBestBuild)
+        const wz2First = builds.find(b => b.type === 'wz2')
+        const bo7Best  = builds.find(b => b.type === 'bo7' && b.isBO7BestBuild)
+        const chosen   = wz2Best ?? wz2First ?? bo7Best
+        if (!chosen) continue
+
+        const build: Record<string, string> = {}
+        for (const s of WZ_SLOTS) {
+          const att = chosen[s]
+          if (att?.name) build[slotToES(s)] = att.name
+        }
+        // Warzone max 5 attachments — keep top 5 by slot priority
+        const entries = Object.entries(build).slice(0, 5)
+        return entries.length > 0 ? Object.fromEntries(entries) : null
+      }
     }
-    return Object.keys(build).length > 0 ? build : null
+    return null
   } catch {
     return null
   }
