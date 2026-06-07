@@ -337,8 +337,8 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
 }
 
 /* ── Weapon panel (shared between desktop & mobile) ── */
-function WeaponPanel({ w, onClose, onSave, isAuth }: {
-  w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean
+function WeaponPanel({ w, onClose, onSave, isAuth, isTopCat }: {
+  w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean; isTopCat: boolean
 }) {
   const cfg = TIER_CFG[w.tier] ?? TIER_CFG.C
   const maxLv = w.max_level ?? 50
@@ -365,6 +365,12 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
         </motion.div>
         {/* Tier + change badges — top left */}
         <div className="absolute top-2.5 left-3 flex items-center gap-1.5">
+          {isTopCat && (
+            <span className="text-[10px] font-black px-1.5 py-0.5 rounded border backdrop-blur-sm"
+              style={{ background: 'rgba(250,204,21,0.15)', border: '1px solid rgba(250,204,21,0.35)', color: '#fde047' }}>
+              👑 Top {w.category}
+            </span>
+          )}
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border backdrop-blur-sm ${cfg.badge}`}>
             Tier {w.tier}
           </span>
@@ -502,6 +508,21 @@ export default function Dashboard() {
     ? lastUpdated.toLocaleString('es-CL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : null
 
+  // Top weapon per category (highest tier_score, tiebreak by lowest ranking)
+  const topByCategory = new Set<string>(
+    Object.values(
+      meta.reduce<Record<string, WeaponMeta>>((acc, w) => {
+        const prev = acc[w.category]
+        const score = Number(w.tier_score) || 0
+        const prevScore = prev ? (Number(prev.tier_score) || 0) : -1
+        if (!prev || score > prevScore || (score === prevScore && (w.ranking ?? 999) < (prev.ranking ?? 999))) {
+          acc[w.category] = w
+        }
+        return acc
+      }, {})
+    ).map(w => w.weapon_name)
+  )
+
   const goSave = (w: WeaponMeta) => {
     setSelected(null)
     navigate(isAuthenticated ? '/loadouts' : '/register', {
@@ -618,12 +639,21 @@ export default function Dashboard() {
                       className={`glass rounded-2xl p-2.5 sm:p-3 cursor-pointer transition-all duration-200 ${cfg.cssClass} ${isSelected ? 'ring-1 ring-white/20' : ''}`}>
                       <div className="relative mb-2 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.03)' }}>
                         <WeaponImage src={w.image_url} name={w.weapon_name} />
-                        {/* Ranking badge — top left */}
-                        {w.ranking != null && (
+                        {/* Top-of-category crown — top left */}
+                        {topByCategory.has(w.weapon_name) ? (
+                          <motion.span
+                            initial={{ scale: 0, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 18, delay: 0.1 }}
+                            className="absolute top-1.5 left-1.5 flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm"
+                            style={{ background: 'rgba(250,204,21,0.18)', border: '1px solid rgba(250,204,21,0.4)', color: '#fde047' }}
+                            title={`Mejor ${w.category}`}>
+                            👑 #1
+                          </motion.span>
+                        ) : w.ranking != null ? (
                           <span className="absolute top-1.5 left-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-md leading-none bg-black/60 text-white/60 backdrop-blur-sm">
                             #{w.ranking}
                           </span>
-                        )}
+                        ) : null}
                         {w.recent_change && (
                           <span className={`animate-badge-pop absolute top-1.5 right-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none flex items-center gap-0.5 shadow-lg ${
                             w.recent_change === 'buff' ? 'bg-green-400 text-black' :
@@ -690,7 +720,7 @@ export default function Dashboard() {
               borderLeft: '1px solid rgba(255,255,255,.07)',
               boxShadow: '-8px 0 40px rgba(0,0,0,.6)',
             }}>
-            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
+            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} isTopCat={topByCategory.has(selected.weapon_name)} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -709,7 +739,7 @@ export default function Dashboard() {
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/10" />
             </div>
-            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} />
+            <WeaponPanel w={selected} onClose={() => setSelected(null)} onSave={goSave} isAuth={isAuthenticated} isTopCat={topByCategory.has(selected.weapon_name)} />
           </motion.div>
         )}
       </AnimatePresence>
