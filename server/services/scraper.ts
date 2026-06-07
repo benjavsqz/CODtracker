@@ -198,6 +198,7 @@ interface CodmunityWeapon {
   tier: string
   category: string
   slug: string
+  image_url?: string
 }
 
 async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
@@ -226,15 +227,23 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
       if (!name || name.length < 2 || name.length > 60 || seen.has(name)) return
       seen.add(name)
 
+      const card   = $(el).closest('a')
+      const href   = card.attr('href') ?? ''
+      const slug   = href.replace('/weapon/bo7/', '')
+
       const subtitle = $(el)
         .closest('[class*="tier-list-section-item-texts"]')
         .find('[class*="tier-list-section-item-subtitle"]')
         .first().text().trim()
 
-      const href = $(el).closest('a').attr('href') ?? ''
-      const slug = href.replace('/weapon/bo7/', '')
+      // Extract clean weapon render image (no skin)
+      const rawImgSrc = card.find('img[class*="weapon-image"]').attr('src') ?? ''
+      // Use full-size version (remove 150w- thumbnail prefix)
+      const image_url = rawImgSrc
+        ? rawImgSrc.replace('/150w-', '/').replace('/300w-', '/')
+        : undefined
 
-      weapons.push({ weapon_name: name, tier, category: subtitle || '', slug })
+      weapons.push({ weapon_name: name, tier, category: subtitle || '', slug, image_url })
     })
   })
 
@@ -394,7 +403,8 @@ function aggregateWeapons(
     const weapon_name  = wz?.weapon_name ?? cod!.weapon_name
     const category     = wz?.category ?? (cod?.category ? cod.category : guessCategory(weapon_name))
     const ranking      = wz?.ranking ?? null
-    const image_url    = wz?.image_url ?? null
+    // Prefer codmunity clean renders (no skin), fall back to wzmetaloadouts gold skin
+    const image_url    = cod?.image_url ?? wz?.image_url ?? null
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
     const meta_build   = wz?.meta_build && Object.keys(wz.meta_build).length > 0
