@@ -64,7 +64,20 @@ const WEAPON_CLASSES: Record<string, string[]> = {
   'Soporte':   ['LMG'],
 }
 
-// Slot display labels (Spanish) & colors
+// Normalize slot key: handles Spanish legacy keys still in DB
+function normalizeSlot(slot: string): string {
+  const esMap: Record<string, string> = {
+    'Empuñadura Delantera': 'Underbarrel', 'Empuñadura delantera': 'Underbarrel',
+    'Empuñadura Trasera':   'Rear Grip',   'Empuñadura trasera':   'Rear Grip',
+    'Empuñadura':           'Rear Grip',
+    'Boca de Cañón': 'Muzzle', 'Bocacha': 'Muzzle',
+    'Cañón': 'Barrel', 'Óptica': 'Optic', 'Culata': 'Stock',
+    'Acople inferior': 'Underbarrel', 'Cargador': 'Magazine',
+    'Munición': 'Ammunition', 'Láser': 'Laser', 'Mod. de disparo': 'Fire Mods',
+  }
+  return esMap[slot] ?? slot
+}
+
 const SLOT_ES: Record<string, string> = {
   'Muzzle':      'Bocacha',
   'Barrel':      'Cañón',
@@ -182,8 +195,9 @@ function AttachmentCard({ slot, value, userLevel, index }: {
   const name  = attName(value)
   const reqLv = attLevel(value)
   const locked = reqLv !== null && userLevel < reqLv
-  const slotLabel = SLOT_ES[slot] ?? slot
-  const slotColor = SLOT_CLR[slot] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
+  const normalizedSlot = normalizeSlot(slot)
+  const slotLabel = SLOT_ES[normalizedSlot] ?? normalizedSlot
+  const slotColor = SLOT_CLR[normalizedSlot] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
 
   return (
     <motion.div
