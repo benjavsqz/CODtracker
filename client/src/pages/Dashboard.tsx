@@ -13,7 +13,7 @@ interface WeaponMeta {
   weapon_name: string
   tier: string
   category: string
-  pick_rate: number
+  pick_rate: string | number | null
   meta_build: Record<string, AttVal>
   image_url: string | null
   recent_change: 'buff' | 'nerf' | 'new' | null
@@ -22,7 +22,7 @@ interface WeaponMeta {
   game_modes: string[] | null
   tactical_cat: string | null
   sources_count: number | null
-  tier_score: number | null
+  tier_score: string | number | null
   updated_at: string | null
 }
 
@@ -391,8 +391,8 @@ function WeaponPanel({ w, onClose, onSave, isAuth }: {
           {w.tactical_cat && (
             <span className="text-[9px] text-white/30 font-medium">{w.tactical_cat}</span>
           )}
-          {Number(w.pick_rate) > 0 && (
-            <span className={`text-[10px] font-semibold ${cfg.label}`}>{Number(w.pick_rate).toFixed(1)}% pick rate</span>
+          {w.tier_score && Number(w.tier_score) > 0 && (
+            <span className={`text-[10px] font-semibold ${cfg.label}`}>score {Number(w.tier_score).toFixed(2)}</span>
           )}
         </div>
         {/* Sources indicator */}
@@ -629,29 +629,28 @@ export default function Dashboard() {
                           {w.category}
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
-                          {/* Source confirmation dots */}
-                          {(w.sources_count ?? 1) >= 2 && (
-                            <span title="Confirmado en 2+ fuentes" className="flex gap-0.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                            </span>
-                          )}
-                          {(w.sources_count ?? 1) === 1 && (
-                            <span title="1 fuente" className="flex gap-0.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/[0.07]" />
-                            </span>
-                          )}
+                          <span title={`${w.sources_count ?? 1}/2 fuentes`} className="flex gap-0.5">
+                            {[0,1].map(i => (
+                              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < (w.sources_count ?? 1) ? 'bg-white/50' : 'bg-white/[0.07]'}`} />
+                            ))}
+                          </span>
                         </div>
                       </div>
-                      {w.pick_rate > 0 && (
-                        <div className="mt-2 h-px bg-white/[0.06] rounded-full overflow-hidden">
-                          <motion.div className={`h-full ${cfg.bar} opacity-60`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(w.pick_rate * 4, 100)}%` }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }} />
-                        </div>
-                      )}
+                      {/* Meta strength bar: ranking-based (1=100%) or tier_score-based */}
+                      {(() => {
+                        const score = Number(w.tier_score) || 0
+                        const pct = w.ranking
+                          ? Math.max(10, Math.round((1 - (w.ranking - 1) / 15) * 100))
+                          : score > 0 ? Math.round((score / 4) * 70) : 0
+                        return pct > 0 ? (
+                          <div className="mt-2 h-px bg-white/[0.06] rounded-full overflow-hidden">
+                            <motion.div className={`h-full ${cfg.bar} opacity-60`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }} />
+                          </div>
+                        ) : null
+                      })()}
                     </motion.div>
                   )
                 })}
