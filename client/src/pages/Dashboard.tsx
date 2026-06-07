@@ -151,61 +151,11 @@ function SkeletonCard() {
   )
 }
 
-/* ── Level slider ── */
-function LevelSlider({ level, max, onChange, weaponName }: {
-  level: number; max: number; onChange: (n: number) => void; weaponName: string
-}) {
-  const pct = Math.round((level / max) * 100)
-  return (
-    <div className="px-4 pt-2 pb-2 border-b border-white/[0.05]">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] text-white/30 uppercase tracking-widest font-semibold">Nivel del Arma</span>
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-black text-white leading-none">{level}</span>
-          <span className="text-[10px] text-white/20">/ {max}</span>
-        </div>
-      </div>
-      <div className="relative h-6 flex items-center">
-        {/* Track background */}
-        <div className="absolute inset-x-0 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.07)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: `linear-gradient(90deg,
-                #f87171 0%,
-                #fb923c ${Math.min(pct * 0.6, 60)}%,
-                #f59e0b ${Math.min(pct * 0.8, 80)}%,
-                #ef4444 100%)`,
-            }}
-            animate={{ width: `${pct}%` }}
-            transition={{ type: 'spring' as const, stiffness: 300, damping: 30 }}
-          />
-        </div>
-        <input
-          type="range" min={1} max={max} value={level}
-          onChange={e => onChange(Number(e.target.value))}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-6"
-          aria-label={`Nivel del arma ${weaponName}`}
-        />
-        {/* Thumb indicator */}
-        <motion.div
-          className="absolute w-3.5 h-3.5 rounded-full bg-white shadow-lg pointer-events-none"
-          style={{ boxShadow: '0 0 8px rgba(255,255,255,.4)' }}
-          animate={{ left: `calc(${pct}% - 7px)` }}
-          transition={{ type: 'spring' as const, stiffness: 300, damping: 30 }}
-        />
-      </div>
-    </div>
-  )
-}
-
 /* ── Attachment card ── */
-function AttachmentCard({ slot, value, userLevel, index }: {
-  slot: string; value: AttVal; userLevel: number; index: number
+function AttachmentCard({ slot, value, index }: {
+  slot: string; value: AttVal; index: number
 }) {
   const name  = attName(value)
-  const reqLv = attLevel(value)
-  const locked = reqLv !== null && userLevel < reqLv
   const slotLabel = normalizeSlot(slot)
   const slotColor = SLOT_CLR[slotLabel] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/25'
 
@@ -213,77 +163,29 @@ function AttachmentCard({ slot, value, userLevel, index }: {
     <motion.div
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 + 0.1 }}
-      className={`relative rounded-xl px-3 py-2 transition-all ${
-        locked
-          ? 'opacity-40'
-          : 'opacity-100'
-      }`}
-      style={{ background: locked ? 'rgba(255,255,255,.02)' : 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }}>
-
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          {/* Slot badge */}
-          <span className={`inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide mb-1 ${slotColor}`}>
-            {slotLabel}
-          </span>
-          {/* Attachment name */}
-          <p className={`text-sm font-bold leading-tight ${locked ? 'text-white/40 line-through' : 'text-white'}`}>
-            {name}
-          </p>
-        </div>
-
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          {/* Level badge */}
-          {reqLv !== null && (
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none ${
-              locked
-                ? 'text-red-400 bg-red-500/10 border-red-500/25'
-                : 'text-green-400 bg-green-500/10 border-green-500/25'
-            }`}>
-              Nv.{reqLv}
-            </span>
-          )}
-          {/* Lock / check icon */}
-          {reqLv !== null && (
-            <span className={`text-xs leading-none ${locked ? 'text-red-400' : 'text-green-400'}`}>
-              {locked ? '🔒' : '✓'}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {locked && (
-        <p className="text-[9px] text-red-400/70 mt-0.5">Necesitas nivel {reqLv}</p>
-      )}
+      className="relative rounded-xl px-3 py-2"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }}>
+      <span className={`inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide mb-1 ${slotColor}`}>
+        {slotLabel}
+      </span>
+      <p className="text-sm font-bold leading-tight text-white">{name}</p>
     </motion.div>
   )
 }
 
 /* ── Build display (full panel section) ── */
-function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
+function BuildDisplay({ build, weaponName, tier, category }: {
   build: Record<string, AttVal>
-  weaponName: string; tier: string; category: string; userLevel: number
+  weaponName: string; tier: string; category: string
 }) {
   const [copied, setCopied] = useState(false)
-  // Warzone allows max 5 attachments — show top 5 by unlock level
-  const entries = Object.entries(build)
-    .filter(([, v]) => attName(v))
-    .sort((a, b) => (attLevel(b[1]) ?? 0) - (attLevel(a[1]) ?? 0))
-    .slice(0, 5)
-    .sort((a, b) => (attLevel(a[1]) ?? 0) - (attLevel(b[1]) ?? 0))
+  const entries = Object.entries(build).filter(([, v]) => attName(v)).slice(0, 5)
   const hasData = entries.length > 0
-  const unlockedCount = entries.filter(([, v]) => {
-    const lv = attLevel(v); return lv === null || userLevel >= lv
-  }).length
 
   const copySetup = () => {
     const header = `=== ${weaponName} — Tier ${tier} (${category}) ===`
     const body = hasData
-      ? entries.map(([slot, v]) => {
-          const lv = attLevel(v)
-          const locked = lv !== null && userLevel < lv
-          return `${normalizeSlot(slot)}: ${locked ? '[BLOQUEADO Nv.' + lv + '] ' : ''}${attName(v)}`
-        }).join('\n')
+      ? entries.map(([slot, v]) => `${normalizeSlot(slot)}: ${attName(v)}`).join('\n')
       : '(Build meta próximamente)'
     navigator.clipboard.writeText(`${header}\n${body}`)
     setCopied(true); setTimeout(() => setCopied(false), 2000)
@@ -295,16 +197,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
         <>
           {/* Header row */}
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <p className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">Build Meta</p>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                unlockedCount === entries.length
-                  ? 'text-red-400 bg-red-500/10'
-                  : 'text-amber-400 bg-amber-500/10'
-              }`}>
-                {unlockedCount}/{entries.length} desbloqueados · 5 max WZ
-              </span>
-            </div>
+            <p className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">Build Meta · 5 accesorios WZ</p>
             <motion.button whileTap={{ scale: 0.92 }} onClick={copySetup}
               className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
                 copied
@@ -318,7 +211,7 @@ function BuildDisplay({ build, weaponName, tier, category, userLevel }: {
           {/* Attachment cards */}
           <div className="space-y-1.5">
             {entries.map(([slot, value], i) => (
-              <AttachmentCard key={slot} slot={slot} value={value} userLevel={userLevel} index={i} />
+              <AttachmentCard key={slot} slot={slot} value={value} index={i} />
             ))}
           </div>
 
@@ -341,17 +234,6 @@ function WeaponPanel({ w, onClose, onSave, isAuth, isTopCat }: {
   w: WeaponMeta; onClose: () => void; onSave: (w: WeaponMeta) => void; isAuth: boolean; isTopCat: boolean
 }) {
   const cfg = TIER_CFG[w.tier] ?? TIER_CFG.C
-  const maxLv = w.max_level ?? 50
-
-  const [userLevel, setUserLevel] = useState<number>(() => {
-    const saved = localStorage.getItem(`mwz:lv:${w.weapon_name}`)
-    return saved ? parseInt(saved) : maxLv
-  })
-
-  const handleLevel = (n: number) => {
-    setUserLevel(n)
-    localStorage.setItem(`mwz:lv:${w.weapon_name}`, String(n))
-  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -436,18 +318,12 @@ function WeaponPanel({ w, onClose, onSave, isAuth, isTopCat }: {
         ) : null}
       </div>
 
-      {/* ─ Level slider ─ */}
-      <div className="shrink-0">
-        <LevelSlider level={userLevel} max={maxLv} onChange={handleLevel} weaponName={w.weapon_name} />
-      </div>
-
       {/* ─ Build ─ */}
       <BuildDisplay
         build={w.meta_build ?? {}}
         weaponName={w.weapon_name}
         tier={w.tier}
         category={w.category}
-        userLevel={userLevel}
       />
 
       {/* ─ Save action ─ */}
