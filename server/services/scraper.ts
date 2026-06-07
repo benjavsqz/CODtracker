@@ -182,7 +182,7 @@ async function fetchWZStatsTierList(): Promise<WZStatsTierWeapon[]> {
   const seen = new Set<string>()
 
   const tierClassMap: Record<string, string> = {
-    'tier-a': 'A', 'tier-b': 'B', 'tier-c': 'C', 'tier-d': 'D',
+    'tier-meta': 'S', 'tier-a': 'A', 'tier-b': 'B', 'tier-c': 'C', 'tier-d': 'D',
   }
 
   function extractFromOl($ol: ReturnType<typeof $>, tier: string) {
@@ -704,6 +704,13 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
       )
     }
   }
+
+  // Remove stale weapons no longer in any source
+  const currentKeys = aggregated.map(w => normalizeKey(w.weapon_name))
+  await query(
+    `DELETE FROM weapon_meta WHERE LOWER(TRIM(weapon_name)) != ALL($1::text[])`,
+    [currentKeys],
+  )
 }
 
 // ── Persist perks ──────────────────────────────────────────────────────────
