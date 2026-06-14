@@ -367,6 +367,7 @@ interface CodmunityWeaponData {
   change_type: 'buff' | 'nerf' | 'new' | null
   changed_at: Date | null
   build: Record<string, string> | null
+  image_url: string | null
 }
 
 function nameKey(name: string): string {
@@ -481,9 +482,15 @@ async function fetchCodmunityWeaponData(slug: string): Promise<CodmunityWeaponDa
     const changed_at  = change_type && dateMatches.length > 0 ? parseCodmunityDate(dateMatches[0]) : null
     const build       = extractCodmunityBuild(html)
 
-    return { change_type, changed_at, build }
+    // Extract weapon image from og:image or assets.codmunity.gg src
+    const ogImg = html.match(/property="og:image"\s+content="([^"]+)"/)
+      ?? html.match(/content="([^"]+)"\s+property="og:image"/)
+    const assetImg = html.match(/src="(https:\/\/assets\.codmunity\.gg\/[^"]+\.(?:webp|png|jpg|jpeg))"/)
+    const image_url = ogImg?.[1] ?? assetImg?.[1] ?? null
+
+    return { change_type, changed_at, build, image_url }
   } catch {
-    return { change_type: null, changed_at: null, build: null }
+    return { change_type: null, changed_at: null, build: null, image_url: null }
   }
 }
 
@@ -505,11 +512,14 @@ async function enrichWithCodmunityData(
           change_type: r.value.change_type,
           changed_at:  r.value.changed_at,
           build:       r.value.build,
+          image_url:   r.value.image_url,
         })
       }
     }
     if (i + BATCH < weaponsWithSlug.length) await new Promise(r => setTimeout(r, 400))
   }
+  const imgCount = [...results.values()].filter(d => d.image_url).length
+  console.log(`[scraper] Codmunity weapon pages: ${results.size} visitadas, ${imgCount} con imagen`)
   return results
 }
 
@@ -602,11 +612,11 @@ function aggregateWeapons(
     const weapon_name  = wz?.weapon_name ?? cod!.weapon_name
     const category     = wz?.category ?? (cod?.category ? translateCategory(cod.category) : guessCategory(weapon_name))
     const ranking      = wz?.ranking ?? null
-    // Prefer codmunity clean renders, fall back to wzstats image
-    const image_url    = cod?.image_url ?? wz?.image_url ?? null
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
     const codData      = codmunityData.get(weapon_name)
+    // image: weapon page (reliable) > tier list thumbnail > wzstats (S-only)
+    const image_url    = codData?.image_url ?? cod?.image_url ?? wz?.image_url ?? null
     // Codmunity build is primary (more accurate); wzstats JSON is fallback
     const meta_build   = (codData?.build && Object.keys(codData.build).length > 0)
       ? codData.build
