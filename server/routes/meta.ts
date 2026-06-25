@@ -25,6 +25,30 @@ router.get('/', async (_req, res) => {
   }
 })
 
+router.get('/debug-encoding', async (_req, res) => {
+  try {
+    const encRes  = await query("SHOW server_encoding")
+    const cliRes  = await query("SHOW client_encoding")
+    const typeRes = await query(
+      "SELECT data_type FROM information_schema.columns WHERE table_name='weapon_meta' AND column_name='meta_build'"
+    )
+    // Write and read back a test string with Spanish accents
+    await query("CREATE TEMP TABLE IF NOT EXISTS _enc_test (v text)")
+    await query("DELETE FROM _enc_test")
+    await query("INSERT INTO _enc_test VALUES ($1)", ["TEST: ñáéíóú Ñ Í"])
+    const valRes = await query("SELECT v, octet_length(v) as bytes FROM _enc_test LIMIT 1")
+    res.json({
+      server_encoding: encRes.rows[0]?.server_encoding,
+      client_encoding: cliRes.rows[0]?.client_encoding,
+      meta_build_type:  typeRes.rows[0]?.data_type,
+      roundtrip_value:  valRes.rows[0]?.v,
+      roundtrip_bytes:  valRes.rows[0]?.bytes,
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 router.post('/scrape', async (_req, res) => {
   try {
     res.json({ message: 'Scrape iniciado en background' })
