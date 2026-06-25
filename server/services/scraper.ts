@@ -700,7 +700,10 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
       else if (n < o) { changeType = 'nerf'; changedAt = new Date() }
     }
 
-    const buildParam = w.meta_build ? JSON.stringify(w.meta_build) : null
+    // Escape non-ASCII chars as \uXXXX so special Spanish chars survive any DB encoding config
+    const buildParam = w.meta_build
+      ? JSON.stringify(w.meta_build).replace(/[^\x00-\x7F]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+      : null
 
     if (oldTier !== undefined) {
       await query(

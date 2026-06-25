@@ -13,4 +13,10 @@ export const pool = new Pool({
   options: '-c client_encoding=UTF8',
 })
 
+pool.on('connect', client => {
+  client.query("SET client_encoding = 'UTF8'", err => {
+    if (err) console.warn('[db] SET client_encoding failed:', err.message)
+  })
+})
+
 export const query = (text: string, params?: unknown[]) => pool.query(text, params)
