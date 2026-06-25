@@ -112,3 +112,8 @@ CREATE TABLE IF NOT EXISTS meta_clases (
   updated_at             TIMESTAMP DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS meta_clases_nombre_unique ON meta_clases (nombre);
+ALTER TABLE meta_clases ADD COLUMN IF NOT EXISTS perk1    VARCHAR(100);
+ALTER TABLE meta_clases ADD COLUMN IF NOT EXISTS perk2    VARCHAR(100);
+ALTER TABLE meta_clases ADD COLUMN IF NOT EXISTS perk3    VARCHAR(100);
+ALTER TABLE meta_clases ADD COLUMN IF NOT EXISTS tactical VARCHAR(100);
+ALTER TABLE meta_clases ADD COLUMN IF NOT EXISTS lethal   VARCHAR(100);

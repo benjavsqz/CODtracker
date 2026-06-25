@@ -108,7 +108,7 @@ router.get('/clases', async (_req, res) => {
       `SELECT id, nombre, estilo, descripcion, dificultad, modos, color,
               primaria_arma, primaria_attachments,
               secundaria_arma, secundaria_attachments,
-              stats, updated_at
+              stats, perk1, perk2, perk3, tactical, lethal, updated_at
        FROM meta_clases
        ORDER BY id`
     )

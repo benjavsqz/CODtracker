@@ -388,6 +388,14 @@ function nameKey(name: string): string {
   return name.toLowerCase().replace(/[-.\s]/g, '')
 }
 
+function toSlug(name: string): string {
+  return name.toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
   const { data: buf } = await axios.get('https://codmunity.gg/es/tier-list/warzone', {
     headers: HEADERS, timeout: 15000, responseType: 'arraybuffer',
@@ -434,7 +442,7 @@ async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
       seen.add(name)
 
       const href     = $(el).closest('a').attr('href') ?? ''
-      const slug     = href.replace('/es/weapon/bo7/', '').replace('/weapon/bo7/', '')
+      const slug     = href.replace('/es/weapon/bo7/', '').replace('/weapon/bo7/', '') || toSlug(name)
       const subtitle = $(el)
         .closest('[class*="tier-list-section-item-texts"]')
         .find('[class*="tier-list-section-item-subtitle"]')
@@ -524,7 +532,7 @@ async function enrichWithCodmunityData(
     )
     for (const r of res) {
       if (r.status === 'fulfilled') {
-        results.set(r.value.name, {
+        results.set(nameKey(r.value.name), {
           change_type: r.value.change_type,
           changed_at:  r.value.changed_at,
           build:       r.value.build,
@@ -630,13 +638,16 @@ function aggregateWeapons(
     const ranking      = wz?.ranking ?? null
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
-    const codData      = codmunityData.get(weapon_name)
+    const codData      = codmunityData.get(nameKey(weapon_name))
     // image: weapon page (reliable) > tier list thumbnail > wzstats (S-only)
     const image_url    = codData?.image_url ?? cod?.image_url ?? wz?.image_url ?? null
-    // Codmunity build is primary (more accurate); wzstats JSON is fallback
+    // Codmunity build is primary; wzstats JSON is fallback (skip old object-format data)
+    const wzBuild = wz?.meta_build && Object.keys(wz.meta_build).length > 0
+      && Object.values(wz.meta_build).every(v => typeof v === 'string')
+      ? wz.meta_build : null
     const meta_build   = (codData?.build && Object.keys(codData.build).length > 0)
       ? codData.build
-      : (wz?.meta_build && Object.keys(wz.meta_build).length > 0 ? wz.meta_build : null)
+      : wzBuild
 
     // Change type: wzstats flags → codmunity dated history → news scan
     let change_type: string | null = null
@@ -700,10 +711,10 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
       else if (n < o) { changeType = 'nerf'; changedAt = new Date() }
     }
 
-    // Escape non-ASCII chars as \uXXXX so special Spanish chars survive any DB encoding config
+    // Escape non-ASCII as \uXXXX so Spanish chars survive any DB client_encoding mismatch
     const buildParam = w.meta_build
       ? JSON.stringify(w.meta_build).replace(/[^\x00-\x7F]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
-      : null
+      : '{}'
 
     if (oldTier !== undefined) {
       await query(
@@ -712,16 +723,11 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
              change_type=$4::varchar,
              changed_at=CASE WHEN $4::varchar IS NOT NULL THEN $5 ELSE changed_at END,
              ranking=$6, game_modes=$7, tactical_cat=$8,
-             sources_count=$9, tier_score=$10
-             ${buildParam ? ', meta_build=$11' : ''}
-         WHERE LOWER(weapon_name)=${buildParam ? '$12' : '$11'}`,
-        buildParam
-          ? [w.tier, w.category, w.image_url, changeType, changedAt,
-             w.ranking, w.game_modes, w.tactical_cat,
-             w.sources_count, w.tier_score, buildParam, normalizeKey(w.weapon_name)]
-          : [w.tier, w.category, w.image_url, changeType, changedAt,
-             w.ranking, w.game_modes, w.tactical_cat,
-             w.sources_count, w.tier_score, normalizeKey(w.weapon_name)],
+             sources_count=$9, tier_score=$10, meta_build=$11
+         WHERE LOWER(weapon_name)=$12`,
+        [w.tier, w.category, w.image_url, changeType, changedAt,
+         w.ranking, w.game_modes, w.tactical_cat,
+         w.sources_count, w.tier_score, buildParam, normalizeKey(w.weapon_name)],
       )
     } else {
       await query(
@@ -732,8 +738,7 @@ async function saveWeapons(aggregated: ReturnType<typeof aggregateWeapons>): Pro
          ON CONFLICT (weapon_name) DO NOTHING`,
         [w.weapon_name, w.tier, w.category, w.image_url,
          changeType, changedAt, w.ranking, w.game_modes,
-         w.tactical_cat, w.sources_count, w.tier_score,
-         buildParam ? JSON.parse(buildParam) : {}],
+         w.tactical_cat, w.sources_count, w.tier_score, buildParam],
       )
     }
   }
@@ -764,6 +769,16 @@ async function savePerks(ventajas: VentajaItem[]): Promise<void> {
   }
 }
 
+// Perk + equipment recommendations per clase style (based on BO7 WZ meta)
+const CLASE_PERKS: Record<string, { perk1: string; perk2: string; perk3: string; tactical: string; lethal: string }> = {
+  'Rush & Destroy':    { perk1: 'Scavenger', perk2: 'Sprinter',    perk3: 'Ghost',    tactical: 'Flashbang',    lethal: 'C4' },
+  'One Shot King':     { perk1: 'Scavenger', perk2: 'Momentum',    perk3: 'Ghost',    tactical: 'Smoke Grenade', lethal: 'Semtex' },
+  'Todo Terreno':      { perk1: 'Scavenger', perk2: 'Sprinter',    perk3: 'Ghost',    tactical: 'Stim Shot',    lethal: 'C4' },
+  'Domina el Respawn': { perk1: 'Scavenger', perk2: 'Momentum',    perk3: 'Ghost',    tactical: 'Stim Shot',    lethal: 'C4' },
+  'Floor Loot King':   { perk1: 'Scavenger', perk2: 'Quick Patch', perk3: 'Adaptive', tactical: 'Stim Shot',    lethal: 'Semtex' },
+  'Competitive Edge':  { perk1: 'Surveyor',  perk2: 'Sprinter',    perk3: 'Ghost',    tactical: 'Smoke Grenade', lethal: 'Throwing Knife' },
+}
+
 // ── Persist clases ─────────────────────────────────────────────────────────
 
 async function saveClases(clases: ClaseItem[]): Promise<void> {
@@ -777,22 +792,49 @@ async function saveClases(clases: ClaseItem[]): Promise<void> {
     )
     const primArma = c.primaria?.nombre ?? c.primaria?.arma ?? null
     const secArma  = c.secundaria?.nombre ?? c.secundaria?.arma ?? null
+    const perks    = CLASE_PERKS[c.nombre]
 
     await query(
       `INSERT INTO meta_clases
          (nombre, estilo, descripcion, dificultad, modos, color,
-          primaria_arma, primaria_attachments, secundaria_arma, secundaria_attachments, stats, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+          primaria_arma, primaria_attachments, secundaria_arma, secundaria_attachments,
+          stats, perk1, perk2, perk3, tactical, lethal, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())
        ON CONFLICT (nombre) DO UPDATE
          SET estilo=$2, descripcion=$3, dificultad=$4, modos=$5, color=$6,
              primaria_arma=$7, primaria_attachments=$8,
              secundaria_arma=$9, secundaria_attachments=$10,
-             stats=$11, updated_at=NOW()`,
+             stats=$11, perk1=$12, perk2=$13, perk3=$14, tactical=$15, lethal=$16, updated_at=NOW()`,
       [c.nombre, c.estilo, c.descripcion, c.dificultad,
        c.modos ?? [], c.color ?? null,
-       primArma, primAtt, secArma, secAtt, c.stats ?? {}],
+       primArma, primAtt, secArma, secAtt, c.stats ?? {},
+       perks?.perk1 ?? null, perks?.perk2 ?? null, perks?.perk3 ?? null,
+       perks?.tactical ?? null, perks?.lethal ?? null],
     )
   }
+}
+
+// ── Sync clase attachments from current weapon meta builds ────────────────
+
+async function syncClaseAttachments(): Promise<void> {
+  // Update clase weapon attachments to match the latest meta_build from weapon_meta
+  await query(`
+    UPDATE meta_clases c
+    SET primaria_attachments = w.meta_build::jsonb, updated_at = NOW()
+    FROM weapon_meta w
+    WHERE LOWER(TRIM(c.primaria_arma)) = LOWER(TRIM(w.weapon_name))
+      AND w.meta_build IS NOT NULL
+      AND w.meta_build::text != '{}'
+  `)
+  await query(`
+    UPDATE meta_clases c
+    SET secundaria_attachments = w.meta_build::jsonb, updated_at = NOW()
+    FROM weapon_meta w
+    WHERE LOWER(TRIM(c.secundaria_arma)) = LOWER(TRIM(w.weapon_name))
+      AND w.meta_build IS NOT NULL
+      AND w.meta_build::text != '{}'
+  `)
+  console.log('[scraper] Clase attachments sincronizados con meta builds actuales')
 }
 
 // ── Persist noticias ───────────────────────────────────────────────────────
@@ -882,7 +924,10 @@ export async function scrapeWeaponMeta(): Promise<void> {
 
   await saveWeapons(aggregated)
   if (ventajas.length) await savePerks(ventajas)
-  if (clases.length)   await saveClases(clases)
+  if (clases.length) {
+    await saveClases(clases)
+    await syncClaseAttachments()
+  }
   if (noticias.length) await saveNoticias(noticias, contentMap)
 
   console.log(`[scraper] Completado — ${aggregated.length} armas, ${ventajas.length} ventajas, ${clases.length} clases, ${noticias.length} noticias`)
