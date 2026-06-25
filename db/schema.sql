@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS weapon_meta (
 );
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS meta_build JSONB DEFAULT '{}';
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- Change meta_build from jsonb to json so \uXXXX escapes are preserved verbatim,
+-- preventing double-encoding on servers with non-UTF8 default client_encoding.
+-- Conditional: only run if still jsonb (idempotent across deploys).
+DO $$ BEGIN
+  IF (SELECT data_type FROM information_schema.columns
+      WHERE table_name='weapon_meta' AND column_name='meta_build') = 'jsonb' THEN
+    ALTER TABLE weapon_meta ALTER COLUMN meta_build TYPE json USING meta_build::text::json;
+  END IF;
+END $$;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS change_type VARCHAR(10);
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS changed_at TIMESTAMP;
 ALTER TABLE weapon_meta ADD COLUMN IF NOT EXISTS max_level INTEGER DEFAULT 50;
