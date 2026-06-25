@@ -137,36 +137,50 @@ function codSlotToES(slot: string): string {
 
 function translateCategory(tipo: string): string {
   const map: Record<string, string> = {
-    'Fusil de asalto':        'Assault Rifle',
-    'Subfusil':               'SMG',
-    'Ametralladora ligera':   'LMG',
-    'Fusil de precisión':     'Sniper Rifle',
-    'Fusil de tirador':       'Marksman Rifle',
-    'Fusil de batalla':       'Battle Rifle',
-    'Escopeta':               'Shotgun',
-    'Pistola':                'Handgun',
-    'Arma Cortas':            'Handgun',
-    'Armas Cortas':           'Handgun',
-    'Pistolas':               'Handgun',
-    'Lanzador':               'Special',
-    'ASSAULT_RIFLE':          'Assault Rifle',
-    'SMG':                    'SMG',
-    'LMG':                    'LMG',
-    'SNIPER_RIFLE':           'Sniper Rifle',
-    'MARKSMAN_RIFLE':         'Marksman Rifle',
-    'BATTLE_RIFLE':           'Battle Rifle',
-    'SHOTGUN':                'Shotgun',
-    'PISTOL':                 'Handgun',
-    'Marksman':               'Marksman Rifle',
-    'Sniper':                 'Sniper Rifle',
-    'Assault Rifle':          'Assault Rifle',
-    'Shotgun':                'Shotgun',
-    'Handgun':                'Handgun',
-    'Battle Rifle':           'Battle Rifle',
-    'Marksman Rifle':         'Marksman Rifle',
-    'Sniper Rifle':           'Sniper Rifle',
+    // Spanish singular (wzstats)
+    'Fusil de asalto':                'Assault Rifle',
+    'Subfusil':                       'SMG',
+    'Ametralladora ligera':           'LMG',
+    'Fusil de precisión':             'Sniper Rifle',
+    'Fusil de tirador':               'Marksman Rifle',
+    'Fusil de batalla':               'Battle Rifle',
+    'Escopeta':                       'Shotgun',
+    'Pistola':                        'Handgun',
+    'Lanzador':                       'Special',
+    'Especial':                       'Special',
+    // Spanish plural (codmunity tier list)
+    'Fusiles de asalto':              'Assault Rifle',
+    'Subfusiles':                     'SMG',
+    'Ametralladoras ligeras':         'LMG',
+    'Fusiles de precisión':           'Sniper Rifle',
+    'Fusiles de tirador':             'Marksman Rifle',
+    'Fusiles de batalla':             'Battle Rifle',
+    'Escopetas':                      'Shotgun',
+    'Pistolas':                       'Handgun',
+    'Arma Cortas':                    'Handgun',
+    'Armas Cortas':                   'Handgun',
+    'Lanzadores':                     'Special',
+    // English API keys (wzstats API)
+    'ASSAULT_RIFLE':                  'Assault Rifle',
+    'SMG':                            'SMG',
+    'LMG':                            'LMG',
+    'SNIPER_RIFLE':                   'Sniper Rifle',
+    'MARKSMAN_RIFLE':                 'Marksman Rifle',
+    'BATTLE_RIFLE':                   'Battle Rifle',
+    'SHOTGUN':                        'Shotgun',
+    'PISTOL':                         'Handgun',
+    // English pass-through (already correct)
+    'Assault Rifle':                  'Assault Rifle',
+    'Sniper Rifle':                   'Sniper Rifle',
+    'Marksman Rifle':                 'Marksman Rifle',
+    'Battle Rifle':                   'Battle Rifle',
+    'Shotgun':                        'Shotgun',
+    'Handgun':                        'Handgun',
+    'Special':                        'Special',
+    'Marksman':                       'Marksman Rifle',
+    'Sniper':                         'Sniper Rifle',
   }
-  return map[tipo] ?? tipo ?? 'Assault Rifle'
+  return map[tipo] ?? map[tipo?.trim()] ?? 'Assault Rifle'
 }
 
 function evalJSVar(js: string, varName: string): unknown {
@@ -506,11 +520,10 @@ async function fetchCodmunityWeaponData(slug: string): Promise<CodmunityWeaponDa
     const changed_at  = change_type && dateMatches.length > 0 ? parseCodmunityDate(dateMatches[0]!) : null
     const build       = extractCodmunityBuild(html)
 
-    // Extract weapon image from og:image or assets.codmunity.gg src
-    const ogImg = html.match(/property="og:image"\s+content="([^"]+)"/)
-      ?? html.match(/content="([^"]+)"\s+property="og:image"/)
-    const assetImg = html.match(/src="(https:\/\/assets\.codmunity\.gg\/[^"]+\.(?:webp|png|jpg|jpeg))"/)
-    const image_url = ogImg?.[1] ?? assetImg?.[1] ?? null
+    // Extract weapon-specific image: only /optimized/ assets that contain "Warzone-Loadout"
+    // (the og:image returns the generic site banner, not the weapon image)
+    const weaponImg = html.match(/src="(https:\/\/assets\.codmunity\.gg\/optimized\/[^"]*?Warzone-Loadout[^"]+\.(?:webp|png|jpg|jpeg))"/)
+    const image_url = weaponImg?.[1] ?? null
 
     return { change_type, changed_at, build, image_url }
   } catch {
@@ -639,8 +652,8 @@ function aggregateWeapons(
     const game_modes   = wz?.game_modes ?? []
     const tactical_cat = wz?.tactical_cat ?? null
     const codData      = codmunityData.get(nameKey(weapon_name))
-    // image: weapon page (reliable) > tier list thumbnail > wzstats (S-only)
-    const image_url    = codData?.image_url ?? cod?.image_url ?? wz?.image_url ?? null
+    // image: tier list thumbnail (always correct) > weapon page /optimized/ > wzstats (S-only)
+    const image_url    = cod?.image_url ?? codData?.image_url ?? wz?.image_url ?? null
     // Codmunity build is primary; wzstats JSON is fallback (skip old object-format data)
     const wzBuild = wz?.meta_build && Object.keys(wz.meta_build).length > 0
       && Object.values(wz.meta_build).every(v => typeof v === 'string')
