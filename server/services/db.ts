@@ -10,6 +10,7 @@ export const pool = new Pool({
   database: process.env.DB_NAME || 'wztracker',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASS,
+  options: '-c client_encoding=UTF8',
 })
 
 export const query = (text: string, params?: unknown[]) => pool.query(text, params)

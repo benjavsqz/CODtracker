@@ -145,6 +145,10 @@ function translateCategory(tipo: string): string {
     'Fusil de batalla':       'Battle Rifle',
     'Escopeta':               'Shotgun',
     'Pistola':                'Handgun',
+    'Arma Cortas':            'Handgun',
+    'Armas Cortas':           'Handgun',
+    'Pistolas':               'Handgun',
+    'Lanzador':               'Special',
     'ASSAULT_RIFLE':          'Assault Rifle',
     'SMG':                    'SMG',
     'LMG':                    'LMG',
@@ -153,6 +157,14 @@ function translateCategory(tipo: string): string {
     'BATTLE_RIFLE':           'Battle Rifle',
     'SHOTGUN':                'Shotgun',
     'PISTOL':                 'Handgun',
+    'Marksman':               'Marksman Rifle',
+    'Sniper':                 'Sniper Rifle',
+    'Assault Rifle':          'Assault Rifle',
+    'Shotgun':                'Shotgun',
+    'Handgun':                'Handgun',
+    'Battle Rifle':           'Battle Rifle',
+    'Marksman Rifle':         'Marksman Rifle',
+    'Sniper Rifle':           'Sniper Rifle',
   }
   return map[tipo] ?? tipo ?? 'Assault Rifle'
 }
@@ -173,9 +185,10 @@ function evalJSVar(js: string, varName: string): unknown {
 // ── Source 1: wzstats.gg tier list (HTML scrape) ──────────────────────────
 
 async function fetchWZStatsTierList(): Promise<WZStatsTierWeapon[]> {
-  const { data: html } = await axios.get(`${WZ_STATS_BASE}/es`, {
-    headers: HEADERS, timeout: 15000,
+  const { data: buf } = await axios.get(`${WZ_STATS_BASE}/es`, {
+    headers: HEADERS, timeout: 15000, responseType: 'arraybuffer',
   })
+  const html = Buffer.from(buf).toString('utf-8')
 
   const $ = cheerio.load(html)
   const weapons: WZStatsTierWeapon[] = []
@@ -265,10 +278,11 @@ const WZ_SLOTS = ['muzzle','barrel','stock','underbarrel','rearGrip','magazine',
 
 async function fetchWZStatsBuild(slug: string): Promise<Record<string, string> | null> {
   try {
-    const { data: html } = await axios.get(
+    const { data: buf } = await axios.get(
       `${WZ_STATS_BASE}/es/best-loadouts/${slug}`,
-      { headers: HEADERS, timeout: 15000 },
+      { headers: HEADERS, timeout: 15000, responseType: 'arraybuffer' },
     )
+    const html = Buffer.from(buf).toString('utf-8')
 
     // Extract all embedded JSON blocks
     const blocks = [...(html as string).matchAll(/application\/json">({.*?})<\/script>/gs)]
@@ -375,9 +389,10 @@ function nameKey(name: string): string {
 }
 
 async function fetchCodmunityTiers(): Promise<CodmunityWeapon[]> {
-  const { data: html } = await axios.get('https://codmunity.gg/es/tier-list/warzone', {
-    headers: HEADERS, timeout: 15000,
+  const { data: buf } = await axios.get('https://codmunity.gg/es/tier-list/warzone', {
+    headers: HEADERS, timeout: 15000, responseType: 'arraybuffer',
   })
+  const html = Buffer.from(buf).toString('utf-8')
 
   // Pre-build image map via regex (Angular SSR, cheerio can't find images reliably)
   const imgMap = new Map<string, string>()
@@ -470,16 +485,17 @@ function extractCodmunityBuild(html: string): Record<string, string> | null {
 
 async function fetchCodmunityWeaponData(slug: string): Promise<CodmunityWeaponData> {
   try {
-    const { data: html } = await axios.get(`https://codmunity.gg/es/weapon/bo7/${slug}`, {
-      headers: HEADERS, timeout: 10000,
+    const { data: buf } = await axios.get(`https://codmunity.gg/es/weapon/bo7/${slug}`, {
+      headers: HEADERS, timeout: 10000, responseType: 'arraybuffer',
     })
+    const html = Buffer.from(buf).toString('utf-8')
     const dateMatches = html.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+,\s+\d{4}/g) ?? []
     const tagMatches  = html.match(/balancing-tag[^>]*>([^<]+)</g)
       ?.map((m: string) => m.replace(/balancing-tag[^>]*>/, '').replace('<', '').trim().toLowerCase())
       .filter((t: string) => /^(buff|nerf|new)$/.test(t)) ?? []
 
     const change_type = tagMatches.length > 0 ? tagMatches[0] as 'buff' | 'nerf' | 'new' : null
-    const changed_at  = change_type && dateMatches.length > 0 ? parseCodmunityDate(dateMatches[0]) : null
+    const changed_at  = change_type && dateMatches.length > 0 ? parseCodmunityDate(dateMatches[0]!) : null
     const build       = extractCodmunityBuild(html)
 
     // Extract weapon image from og:image or assets.codmunity.gg src
